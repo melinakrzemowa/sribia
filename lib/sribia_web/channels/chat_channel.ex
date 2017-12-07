@@ -2,7 +2,7 @@ defmodule SribiaWeb.ChatChannel do
   use SribiaWeb, :channel
 
   def join("chat:lobby", payload, socket) do
-    if authorized?(payload) do
+    if authorized?(socket, payload) do
       {:ok, socket}
     else
       {:error, %{reason: "unauthorized"}}
@@ -17,13 +17,13 @@ defmodule SribiaWeb.ChatChannel do
 
   # It is also common to receive messages from the client and
   # broadcast to everyone in the current topic (chat:lobby).
-  def handle_in("shout", payload, socket) do
-    broadcast socket, "shout", payload
+  def handle_in("shout", %{"body" => body}, socket) do
+    broadcast socket, "shout", %{body: body, user: socket.assigns[:user].name}
     {:noreply, socket}
   end
 
   # Add authorization logic here as required.
-  defp authorized?(_payload) do
-    true
+  defp authorized?(socket, _payload) do
+    !!socket.assigns[:user_id]
   end
 end

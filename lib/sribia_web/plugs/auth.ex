@@ -10,7 +10,11 @@ defmodule SribiaWeb.Plugs.Auth do
   def call(conn, _) do
     if user_id = get_session(conn, :user_id) do
       token = Phoenix.Token.sign(conn, "user token", user_id)
-      assign(conn, :token, token)
+
+      conn
+      |> assign(:token, token)
+      |> assign(:user_id, user_id)
+      |> assign(:user, Sribia.Accounts.get_user!(user_id))
     else
       redirect(conn, to: Routes.page_path(conn, :auth))
     end

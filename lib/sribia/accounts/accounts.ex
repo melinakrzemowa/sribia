@@ -42,10 +42,10 @@ defmodule Sribia.Accounts do
   Gets or creates user and puts it into session.
   """
   def authorize(conn, name) do
-    user =
+    {:ok, user} =
       case Repo.get_by(User, name: name) do
         nil -> create_user(%{name: name})
-        user -> user
+        user -> {:ok, user}
       end
     Plug.Conn.put_session(conn, :user_id, user.id)
   end

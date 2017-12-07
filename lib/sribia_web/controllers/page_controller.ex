@@ -12,7 +12,7 @@ defmodule SribiaWeb.PageController do
   def login(conn, %{"name" => name}) do
     conn
     |> Sribia.Accounts.authorize(name)
-    |> redirect(to: page_path(conn, :auth))
+    |> redirect(to: page_path(conn, :index))
   end
 
 end
