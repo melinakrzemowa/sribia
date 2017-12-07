@@ -3,6 +3,7 @@
     Logged User: <%= assigns[:user].name %>
   </div>
 </div>
+
 <div class="row">
   <div class="col-lg-12">
     <div id="messages"></div>

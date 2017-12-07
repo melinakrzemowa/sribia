@@ -1,7 +1,7 @@
-defmodule SribiaWeb.ChatChannel do
+defmodule SribiaWeb.GameChannel do
   use SribiaWeb, :channel
 
-  def join("chat:lobby", _payload, socket) do
+  def join("game:lobby", _payload, socket) do
     if authorized?(socket) do
       {:ok, socket}
     else
@@ -16,9 +16,9 @@ defmodule SribiaWeb.ChatChannel do
   end
 
   # It is also common to receive messages from the client and
-  # broadcast to everyone in the current topic (chat:lobby).
-  def handle_in("shout", %{"body" => body}, socket) do
-    broadcast socket, "shout", %{body: body, user: socket.assigns[:user].name}
+  # broadcast to everyone in the current topic (game:lobby).
+  def handle_in("shout", payload, socket) do
+    broadcast socket, "shout", payload
     {:noreply, socket}
   end
 
