@@ -55,7 +55,7 @@ window.PIXI   = require('phaser-ce/build/custom/pixi');
 window.p2     = require('phaser-ce/build/custom/p2');
 window.Phaser = require('phaser-ce/build/custom/phaser-split');
 
-var game = new Phaser.Game(800, 500, Phaser.AUTO, 'phaser-example', { preload: preload, create: create, update: update });
+var game = new Phaser.Game(500, 500, Phaser.AUTO, 'phaser-example', { preload: preload, create: create, update: update });
 
 
 socket.connect()
