@@ -51,6 +51,13 @@ let socket = new Socket("/socket", {params: {token: window.token}})
 // Finally, pass the token on connect as below. Or remove it
 // from connect if you don't care about authentication.
 
+window.PIXI   = require('phaser-ce/build/custom/pixi');
+window.p2     = require('phaser-ce/build/custom/p2');
+window.Phaser = require('phaser-ce/build/custom/phaser-split');
+
+var game = new Phaser.Game(800, 500, Phaser.AUTO, 'phaser-example', { preload: preload, create: create, update: update });
+
+
 socket.connect()
 
 // Now that you are connected, you can join channels with a topic:
@@ -93,14 +100,9 @@ gameChannel.join()
   })
   .receive("error", resp => { console.log("Unable to join", resp) })
 
-window.PIXI   = require('phaser-ce/build/custom/pixi');
-window.p2     = require('phaser-ce/build/custom/p2');
-window.Phaser = require('phaser-ce/build/custom/phaser-split');
-
-var game = new Phaser.Game(800, 500, Phaser.AUTO, 'phaser-example', { preload: preload, create: create, update: update });
 
 function preload() {
-    game.load.image('ludzik', '/sprites/ludzik.png');
+  game.load.image('ball', '/sprites/shinyball.png');
 }
 
 var speed = 4;
@@ -110,7 +112,7 @@ function create() {
 }
 
 function createUser(user) {
-  var sprite = game.add.sprite(user.x, user.y, 'ludzik');
+  var sprite = game.add.sprite(user.x, user.y, 'ball');
   game.physics.enable(sprite, Phaser.Physics.ARCADE);
   users[user.user_id] = {sprite: sprite}
 }
