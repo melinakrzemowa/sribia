@@ -54,10 +54,7 @@ let socket = new Socket("/socket", {params: {token: window.token}})
 socket.connect()
 
 // Now that you are connected, you can join channels with a topic:
-let channel = socket.channel("chat:lobby", {})
-channel.join()
-  .receive("ok", resp => { console.log("Joined successfully", resp) })
-  .receive("error", resp => { console.log("Unable to join", resp) })
+let channel = socket.channel("chat:lobby", {});
 
 let chatInput         = document.querySelector("#chat-input")
 let messagesContainer = document.querySelector("#messages")
@@ -71,12 +68,80 @@ chatInput.addEventListener("keypress", event => {
 
 channel.on("shout", payload => {
   let messageItem = document.createElement("li");
-  messageItem.innerText = `[${Date()}] ${payload.user}: ${payload.body}`
+  messageItem.innerText = `[${new Date().toLocaleString()}] ${payload.user}: ${payload.body}`
   messagesContainer.appendChild(messageItem)
 })
 
 channel.join()
   .receive("ok", resp => { console.log("Joined successfully", resp) })
   .receive("error", resp => { console.log("Unable to join", resp) })
+
+let gameChannel = socket.channel("game:lobby", {});
+let users = {};
+
+gameChannel.on("move", payload => {
+  if (!users[payload.user_id]) {
+    createUser(payload);
+  }
+  move(payload);
+});
+
+gameChannel.join()
+  .receive("ok", resp => {
+    console.log("Joined successfully", resp);
+    gameChannel.push("move", {x: 100, y: 100});
+  })
+  .receive("error", resp => { console.log("Unable to join", resp) })
+
+window.PIXI   = require('phaser-ce/build/custom/pixi');
+window.p2     = require('phaser-ce/build/custom/p2');
+window.Phaser = require('phaser-ce/build/custom/phaser-split');
+
+var game = new Phaser.Game(800, 500, Phaser.AUTO, 'phaser-example', { preload: preload, create: create, update: update });
+
+function preload() {
+    game.load.image('ludzik', '/sprites/ludzik.png');
+}
+
+var speed = 4;
+var user_id = window.user_id;
+
+function create() {
+}
+
+function createUser(user) {
+  var sprite = game.add.sprite(user.x, user.y, 'ludzik');
+  game.physics.enable(sprite, Phaser.Physics.ARCADE);
+  users[user.user_id] = {sprite: sprite}
+}
+
+function move(user) {
+  users[user.user_id].sprite.x = user.x;
+  users[user.user_id].sprite.y = user.y;
+}
+
+function update() {
+
+  if (game.input.keyboard.isDown(Phaser.Keyboard.LEFT))
+  {
+    gameChannel.push("move", {x: users[user_id].sprite.x - speed, y: users[user_id].sprite.y});
+  }
+
+  if (game.input.keyboard.isDown(Phaser.Keyboard.RIGHT))
+  {
+    gameChannel.push("move", {x: users[user_id].sprite.x + speed, y: users[user_id].sprite.y});
+  }
+
+  if (game.input.keyboard.isDown(Phaser.Keyboard.UP))
+  {
+    gameChannel.push("move", {x: users[user_id].sprite.x, y: users[user_id].sprite.y - speed});
+  }
+
+  if (game.input.keyboard.isDown(Phaser.Keyboard.DOWN))
+  {
+    gameChannel.push("move", {x: users[user_id].sprite.x, y: users[user_id].sprite.y + speed});
+  }
+
+}
 
 export default socket
