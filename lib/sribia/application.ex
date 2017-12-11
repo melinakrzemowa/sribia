@@ -14,6 +14,7 @@ defmodule Sribia.Application do
       supervisor(SribiaWeb.Endpoint, []),
       # Start your own worker by calling: Sribia.Worker.start_link(arg1, arg2, arg3)
       # worker(Sribia.Worker, [arg1, arg2, arg3]),
+      worker(Sribia.Board, []),
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

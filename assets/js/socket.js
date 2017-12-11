@@ -94,10 +94,7 @@ gameChannel.on("move", payload => {
 });
 
 gameChannel.join()
-  .receive("ok", resp => {
-    console.log("Joined successfully", resp);
-    gameChannel.push("move", {x: 100, y: 100});
-  })
+  .receive("ok", resp => { console.log("Joined successfully", resp); })
   .receive("error", resp => { console.log("Unable to join", resp) })
 
 
@@ -106,42 +103,43 @@ function preload() {
 }
 
 var speed = 4;
+var field = 20;
 var user_id = window.user_id;
 
 function create() {
 }
 
 function createUser(user) {
-  var sprite = game.add.sprite(user.x, user.y, 'ball');
+  var sprite = game.add.sprite(user.x * field, user.y * field, 'ball');
   game.physics.enable(sprite, Phaser.Physics.ARCADE);
   users[user.user_id] = {sprite: sprite}
 }
 
 function move(user) {
-  users[user.user_id].sprite.x = user.x;
-  users[user.user_id].sprite.y = user.y;
+  users[user.user_id].sprite.x = user.x * field;
+  users[user.user_id].sprite.y = user.y * field;
 }
 
 function update() {
 
   if (game.input.keyboard.isDown(Phaser.Keyboard.LEFT))
   {
-    gameChannel.push("move", {x: users[user_id].sprite.x - speed, y: users[user_id].sprite.y});
+    gameChannel.push("move", {direction: "w"});
   }
 
   if (game.input.keyboard.isDown(Phaser.Keyboard.RIGHT))
   {
-    gameChannel.push("move", {x: users[user_id].sprite.x + speed, y: users[user_id].sprite.y});
+    gameChannel.push("move", {direction: "e"});
   }
 
   if (game.input.keyboard.isDown(Phaser.Keyboard.UP))
   {
-    gameChannel.push("move", {x: users[user_id].sprite.x, y: users[user_id].sprite.y - speed});
+    gameChannel.push("move", {direction: "n"});
   }
 
   if (game.input.keyboard.isDown(Phaser.Keyboard.DOWN))
   {
-    gameChannel.push("move", {x: users[user_id].sprite.x, y: users[user_id].sprite.y + speed});
+    gameChannel.push("move", {direction: "s"});
   }
 
 }
