@@ -31,9 +31,9 @@ defmodule Sribia.Board do
       nil ->
         board = Map.put(board, position, user_id)
         users = Map.put(users, user_id, position)
-        {:reply, :ok, %{board: board, users: users}}
+        {:reply, {:ok, position}, %{board: board, users: users}}
       ^user_id ->
-        {:reply, :ok, %{board: board, users: users}}
+        {:reply, {:ok, position}, %{board: board, users: users}}
       _ -> raise "TODO: Occupied place"
     end
   end

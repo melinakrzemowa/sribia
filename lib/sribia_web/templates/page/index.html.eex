@@ -1,6 +1,7 @@
 <div class="row">
   <div class="col-lg-12">
-    Logged User: <%= assigns[:user].name %>
+    Logged User: <%= assigns[:user].name %><br/>
+    <div id="stats" />
   </div>
 </div>
 

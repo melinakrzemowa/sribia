@@ -5,108 +5,111 @@
 // and connect at the socket path in "lib/web/endpoint.ex":
 import {Socket} from "phoenix"
 
-let socket = new Socket("/socket", {params: {token: window.token}})
-
-// When you connect, you'll often need to authenticate the client.
-// For example, imagine you have an authentication plug, `MyAuth`,
-// which authenticates the session and assigns a `:current_user`.
-// If the current user exists you can assign the user's token in
-// the connection for use in the layout.
-//
-// In your "lib/web/router.ex":
-//
-//     pipeline :browser do
-//       ...
-//       plug MyAuth
-//       plug :put_user_token
-//     end
-//
-//     defp put_user_token(conn, _) do
-//       if current_user = conn.assigns[:current_user] do
-//         token = Phoenix.Token.sign(conn, "user socket", current_user.id)
-//         assign(conn, :user_token, token)
-//       else
-//         conn
-//       end
-//     end
-//
-// Now you need to pass this token to JavaScript. You can do so
-// inside a script tag in "lib/web/templates/layout/app.html.eex":
-//
-//     <script>window.userToken = "<%= assigns[:user_token] %>";</script>
-//
-// You will need to verify the user token in the "connect/2" function
-// in "lib/web/channels/user_socket.ex":
-//
-//     def connect(%{"token" => token}, socket) do
-//       # max_age: 1209600 is equivalent to two weeks in seconds
-//       case Phoenix.Token.verify(socket, "user socket", token, max_age: 1209600) do
-//         {:ok, user_id} ->
-//           {:ok, assign(socket, :user, user_id)}
-//         {:error, reason} ->
-//           :error
-//       end
-//     end
-//
-// Finally, pass the token on connect as below. Or remove it
-// from connect if you don't care about authentication.
-
 window.PIXI   = require('phaser-ce/build/custom/pixi');
 window.p2     = require('phaser-ce/build/custom/p2');
 window.Phaser = require('phaser-ce/build/custom/phaser-split');
 
-var game = new Phaser.Game(500, 500, Phaser.AUTO, 'phaser-example', { preload: preload, create: create, update: update });
-
-
-socket.connect()
-
-// Now that you are connected, you can join channels with a topic:
-let channel = socket.channel("chat:lobby", {});
-
-let chatInput         = document.querySelector("#chat-input")
-let messagesContainer = document.querySelector("#messages")
-
-chatInput.addEventListener("keypress", event => {
-  if(event.keyCode === 13){
-    channel.push("shout", {body: chatInput.value})
-    chatInput.value = ""
-  }
-})
-
-channel.on("shout", payload => {
-  let messageItem = document.createElement("li");
-  messageItem.innerText = `[${new Date().toLocaleString()}] ${payload.user}: ${payload.body}`
-  messagesContainer.appendChild(messageItem)
-})
-
-channel.join()
-  .receive("ok", resp => { console.log("Joined successfully", resp) })
-  .receive("error", resp => { console.log("Unable to join", resp) })
-
-let gameChannel = socket.channel("game:lobby", {});
+var game = new Phaser.Game(512, 512, Phaser.AUTO, 'phaser-example', { preload: preload, create: create, update: update, render: render });
 let users = {};
-
-gameChannel.on("move", payload => {
-  if (!users[payload.user_id]) {
-    createUser(payload);
-  }
-  move(payload);
-});
-
-gameChannel.join()
-  .receive("ok", resp => { console.log("Joined successfully", resp); })
-  .receive("error", resp => { console.log("Unable to join", resp) })
-
+var field = 32;
+var user_id = window.user_id;
+var is_moving = false;
+let socket;
+let gameChannel;
 
 function preload() {
-  game.load.image('ball', '/sprites/shinyball.png');
+  game.load.image('ball', '/sprites/shinyball.png', field, field);
 }
 
-var speed = 4;
-var field = 20;
-var user_id = window.user_id;
-
 function create() {
+  game.stage.backgroundColor = '#ccff99';
+  game.input.onTap.add(onTap, this);
+
+  socket = new Socket("/socket", {params: {token: window.token}});
+
+  socket.connect()
+
+  // Now that you are connected, you can join channels with a topic:
+  let channel = socket.channel("chat:lobby", {});
+
+  let chatInput         = document.querySelector("#chat-input")
+  let messagesContainer = document.querySelector("#messages")
+
+  chatInput.addEventListener("keypress", event => {
+    if(event.keyCode === 13){
+      channel.push("shout", {body: chatInput.value})
+      chatInput.value = ""
+    }
+  })
+
+  channel.on("shout", payload => {
+    let messageItem = document.createElement("li");
+    messageItem.innerText = `[${new Date().toLocaleString()}] ${payload.user}: ${payload.body}`
+    messagesContainer.appendChild(messageItem)
+  })
+
+  channel.join()
+    .receive("ok", resp => { console.log("Joined successfully", resp) })
+    .receive("error", resp => { console.log("Unable to join", resp) })
+
+  gameChannel = socket.channel("game:lobby", {});
+
+  gameChannel.on("move", payload => {
+    if (!users[payload.user_id]) {
+      createUser(payload);
+    }
+    move(payload);
+  });
+
+  gameChannel.on("stats", payload => {
+    $("#stats").html(`Speed: ${payload.speed}`);
+  });
+
+  gameChannel.join()
+    .receive("ok", resp => { console.log("Joined successfully", resp); })
+    .receive("error", resp => { console.log("Unable to join", resp) })
+}
+
+function update() {
+
+  if (!is_moving) {
+
+    if (game.input.keyboard.isDown(Phaser.Keyboard.LEFT))
+    {
+      gameChannel.push("move", {direction: "w"});
+      is_moving = true;
+    }
+
+    if (game.input.keyboard.isDown(Phaser.Keyboard.RIGHT))
+    {
+      gameChannel.push("move", {direction: "e"});
+      is_moving = true;
+    }
+
+    if (game.input.keyboard.isDown(Phaser.Keyboard.UP))
+    {
+      gameChannel.push("move", {direction: "n"});
+      is_moving = true;
+    }
+
+    if (game.input.keyboard.isDown(Phaser.Keyboard.DOWN))
+    {
+      gameChannel.push("move", {direction: "s"});
+      is_moving = true;
+    }
+
+  }
+
+}
+
+function render() {
+  if (users[user_id])
+    game.debug.spriteInfo(users[user_id].sprite);
+}
+
+function onTap(pointer) {
+  var x = pointer.x / field;
+  var y = pointer.y / field;
 }
 
 function createUser(user) {
@@ -116,32 +119,23 @@ function createUser(user) {
 }
 
 function move(user) {
-  users[user.user_id].sprite.x = user.x * field;
-  users[user.user_id].sprite.y = user.y * field;
-}
+  var x = user.x * field;
+  var y = user.y * field;
 
-function update() {
-
-  if (game.input.keyboard.isDown(Phaser.Keyboard.LEFT))
-  {
-    gameChannel.push("move", {direction: "w"});
+  if (x != users[user.user_id].sprite.x || y != users[user.user_id].sprite.y) {
+    var tween = game.add.tween(users[user.user_id].sprite).to( { x: x, y: y }, user.move_time, null, true);
+    tween.onComplete.add(function() {
+      users[user.user_id].sprite.x = x;
+      users[user.user_id].sprite.y = y;
+      if (user.user_id == user_id)
+        is_moving = false;
+    });
+  } else {
+    users[user.user_id].sprite.x = user.x * field;
+    users[user.user_id].sprite.y = user.y * field;
+    if (user.user_id == user_id)
+      is_moving = false;
   }
-
-  if (game.input.keyboard.isDown(Phaser.Keyboard.RIGHT))
-  {
-    gameChannel.push("move", {direction: "e"});
-  }
-
-  if (game.input.keyboard.isDown(Phaser.Keyboard.UP))
-  {
-    gameChannel.push("move", {direction: "n"});
-  }
-
-  if (game.input.keyboard.isDown(Phaser.Keyboard.DOWN))
-  {
-    gameChannel.push("move", {direction: "s"});
-  }
-
 }
 
 export default socket
