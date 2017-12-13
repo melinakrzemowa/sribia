@@ -25,10 +25,13 @@ defmodule SribiaWeb.GameChannel do
     case Game.move(socket.assigns[:user_id], direction) do
       {:ok, {x, y}, move_time} ->
         broadcast socket, "move", %{x: x, y: y, user_id: socket.assigns[:user_id], move_time: move_time}
+        {:reply, {:ok, %{result: :moved}}, socket}
       {:error, {x, y}} ->
         broadcast socket, "move", %{x: x, y: y, user_id: socket.assigns[:user_id]}
+        {:reply, {:ok, %{result: :blocked}}, socket}
+      {:error, :too_early} ->
+        {:reply, {:ok, %{result: :too_early}}, socket}
     end
-    {:noreply, socket}
   end
 
   # Add authorization logic here as required.

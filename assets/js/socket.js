@@ -13,7 +13,7 @@ var game = new Phaser.Game(512, 512, Phaser.AUTO, 'phaser-example', { preload: p
 let users = {};
 var field = 32;
 var user_id = window.user_id;
-var is_moving = false;
+let speed = 1;
 let socket;
 let gameChannel;
 
@@ -63,6 +63,7 @@ function create() {
 
   gameChannel.on("stats", payload => {
     $("#stats").html(`Speed: ${payload.speed}`);
+    speed = payload.speed;
   });
 
   gameChannel.join()
@@ -72,33 +73,25 @@ function create() {
 
 function update() {
 
-  if (!is_moving) {
-
     if (game.input.keyboard.isDown(Phaser.Keyboard.LEFT))
     {
       gameChannel.push("move", {direction: "w"});
-      is_moving = true;
     }
 
     if (game.input.keyboard.isDown(Phaser.Keyboard.RIGHT))
     {
       gameChannel.push("move", {direction: "e"});
-      is_moving = true;
     }
 
     if (game.input.keyboard.isDown(Phaser.Keyboard.UP))
     {
       gameChannel.push("move", {direction: "n"});
-      is_moving = true;
     }
 
     if (game.input.keyboard.isDown(Phaser.Keyboard.DOWN))
     {
       gameChannel.push("move", {direction: "s"});
-      is_moving = true;
     }
-
-  }
 
 }
 
@@ -127,14 +120,10 @@ function move(user) {
     tween.onComplete.add(function() {
       users[user.user_id].sprite.x = x;
       users[user.user_id].sprite.y = y;
-      if (user.user_id == user_id)
-        is_moving = false;
     });
   } else {
     users[user.user_id].sprite.x = user.x * field;
     users[user.user_id].sprite.y = user.y * field;
-    if (user.user_id == user_id)
-      is_moving = false;
   }
 }
 
