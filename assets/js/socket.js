@@ -22,6 +22,7 @@ let gameChannel;
 function preload() {
   game.load.image('ball', '/sprites/shinyball.png', field, field);
   game.load.image('background','/sprites/debug-grid-1920x1920.png');
+  game.load.spritesheet('deathknight', '/sprites/deathknight.png', 66.8, 66.8, 45);
 }
 
 function create() {
@@ -115,7 +116,12 @@ function onTap(pointer) {
 }
 
 function createUser(user) {
-  var sprite = game.add.sprite(user.x * field, user.y * field, 'ball');
+  var sprite = game.add.sprite(user.x * field, user.y * field, 'deathknight');
+  sprite.scale.setTo(0.47904, 0.47904);
+  sprite.animations.add('up', [0, 5, 10, 15, 20, 25, 30, 35, 40]);
+  sprite.animations.add('down', [4, 9, 14, 19, 24, 29, 34, 39, 44]);
+  sprite.animations.add('right', [2, 7, 12, 17, 22, 27, 32, 37, 42]);
+
   game.physics.enable(sprite, Phaser.Physics.ARCADE);
   users[user.user_id] = {sprite: sprite};
   if (user.user_id == user_id) {
@@ -128,10 +134,25 @@ function move(user) {
   var y = user.y * field;
 
   if (x != users[user.user_id].sprite.x || y != users[user.user_id].sprite.y) {
+
+    if (x > users[user.user_id].sprite.x) {
+      users[user.user_id].sprite.animations.play('right', 30, true);
+    }
+    if (x < users[user.user_id].sprite.x) {
+      users[user.user_id].sprite.animations.play('left', 30, true);
+    }
+    if (y > users[user.user_id].sprite.y) {
+      users[user.user_id].sprite.animations.play('down', 30, true);
+    }
+    if (y < users[user.user_id].sprite.y) {
+      users[user.user_id].sprite.animations.play('up', 30, true);
+    }
+
     var tween = game.add.tween(users[user.user_id].sprite).to( { x: x, y: y }, user.move_time, null, true);
     tween.onComplete.add(function() {
       users[user.user_id].sprite.x = x;
       users[user.user_id].sprite.y = y;
+
     });
   } else {
     users[user.user_id].sprite.x = user.x * field;
