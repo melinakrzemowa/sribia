@@ -12,24 +12,26 @@
   </head>
 
   <body>
+
     <div class="container">
-      <header class="header">
-        <nav role="navigation">
-          <ul class="nav nav-pills pull-right">
-            <li><a href="http://www.phoenixframework.org/docs">Get Started</a></li>
-          </ul>
-        </nav>
-        <span class="logo"></span>
-      </header>
 
-      <p class="alert alert-info" role="alert"><%= get_flash(@conn, :info) %></p>
-      <p class="alert alert-danger" role="alert"><%= get_flash(@conn, :error) %></p>
+      <div class="row">
+        <p class="alert alert-info" role="alert"><%= get_flash(@conn, :info) %></p>
+        <p class="alert alert-danger" role="alert"><%= get_flash(@conn, :error) %></p>
+      </div>
 
-      <main role="main">
-        <%= render @view_module, @view_template, assigns %>
-      </main>
+      <div class="row">
+        <div class="col-8">
+          <%= render @view_module, @view_template, assigns %>
+        </div>
+        <div class="col-4">
+          <div id="messages"></div>
+          <input id="chat-input" type="text"></input>
+        </div>
+      </div>
 
-    </div> <!-- /container -->
+    </div>
+
     <script>window.token = "<%= assigns[:token] %>";</script>
     <script>window.user_id = <%= assigns[:user_id] %>;</script>
     <script src="<%= static_path(@conn, "/js/app.js") %>"></script>

@@ -5,11 +5,13 @@
 // and connect at the socket path in "lib/web/endpoint.ex":
 import {Socket} from "phoenix"
 
+console.log($('#game'));
+
 window.PIXI   = require('phaser-ce/build/custom/pixi');
 window.p2     = require('phaser-ce/build/custom/p2');
 window.Phaser = require('phaser-ce/build/custom/phaser-split');
 
-var game = new Phaser.Game(512, 512, Phaser.AUTO, 'phaser-example', { preload: preload, create: create, update: update, render: render });
+var game = new Phaser.Game(512, 512, Phaser.AUTO, 'game', { preload: preload, create: create, update: update, render: render });
 let users = {};
 var field = 32;
 var user_id = window.user_id;
