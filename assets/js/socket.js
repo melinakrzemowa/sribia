@@ -11,7 +11,7 @@ window.PIXI   = require('phaser-ce/build/custom/pixi');
 window.p2     = require('phaser-ce/build/custom/p2');
 window.Phaser = require('phaser-ce/build/custom/phaser-split');
 
-var game = new Phaser.Game(512, 512, Phaser.AUTO, 'game', { preload: preload, create: create, update: update, render: render });
+var game = new Phaser.Game(512, 512, Phaser.CANVAS, 'game', { preload: preload, create: create, update: update, render: render });
 let users = {};
 var field = 32;
 var user_id = window.user_id;
@@ -21,10 +21,13 @@ let gameChannel;
 
 function preload() {
   game.load.image('ball', '/sprites/shinyball.png', field, field);
+  game.load.image('background','/sprites/debug-grid-1920x1920.png');
 }
 
 function create() {
-  game.stage.backgroundColor = '#ccff99';
+  game.add.tileSprite(0, 0, 1920, 1920, 'background');
+  game.world.setBounds(0, 0, 1920, 1920);
+
   game.input.onTap.add(onTap, this);
 
   socket = new Socket("/socket", {params: {token: window.token}});
@@ -98,8 +101,12 @@ function update() {
 }
 
 function render() {
-  if (users[user_id])
-    game.debug.spriteInfo(users[user_id].sprite);
+  game.debug.cameraInfo(game.camera, 32, 32);
+
+  if (users[user_id]) {
+    game.debug.spriteInfo(users[user_id].sprite, 32, 200);
+    game.debug.spriteCoords(users[user_id].sprite, 32, 460);
+  }
 }
 
 function onTap(pointer) {
@@ -110,7 +117,10 @@ function onTap(pointer) {
 function createUser(user) {
   var sprite = game.add.sprite(user.x * field, user.y * field, 'ball');
   game.physics.enable(sprite, Phaser.Physics.ARCADE);
-  users[user.user_id] = {sprite: sprite}
+  users[user.user_id] = {sprite: sprite};
+  if (user.user_id == user_id) {
+    game.camera.follow(sprite);
+  }
 }
 
 function move(user) {
