@@ -1,4 +1,4 @@
-defmodule SribiaWeb.ConnCase do
+defmodule AbyssWeb.ConnCase do
   @moduledoc """
   This module defines the test case to be used by
   tests that require setting up a connection.
@@ -19,18 +19,18 @@ defmodule SribiaWeb.ConnCase do
     quote do
       # Import conveniences for testing with connections
       use Phoenix.ConnTest
-      import SribiaWeb.Router.Helpers
+      import AbyssWeb.Router.Helpers
 
       # The default endpoint for testing
-      @endpoint SribiaWeb.Endpoint
+      @endpoint AbyssWeb.Endpoint
     end
   end
 
 
   setup tags do
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(Sribia.Repo)
+    :ok = Ecto.Adapters.SQL.Sandbox.checkout(Abyss.Repo)
     unless tags[:async] do
-      Ecto.Adapters.SQL.Sandbox.mode(Sribia.Repo, {:shared, self()})
+      Ecto.Adapters.SQL.Sandbox.mode(Abyss.Repo, {:shared, self()})
     end
     {:ok, conn: Phoenix.ConnTest.build_conn()}
   end

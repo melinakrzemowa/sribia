@@ -6,7 +6,7 @@ use Mix.Config
 # The watchers configuration can be used to run external
 # watchers to your application. For example, we use it
 # with brunch.io to recompile .js and .css sources.
-config :sribia, SribiaWeb.Endpoint,
+config :abyss, AbyssWeb.Endpoint,
   http: [port: 4000],
   debug_errors: true,
   code_reloader: true,
@@ -31,13 +31,13 @@ config :sribia, SribiaWeb.Endpoint,
 # different ports.
 
 # Watch static and templates for browser reloading.
-config :sribia, SribiaWeb.Endpoint,
+config :abyss, AbyssWeb.Endpoint,
   live_reload: [
     patterns: [
       ~r{priv/static/.*(js|css|png|jpeg|jpg|gif|svg)$},
       ~r{priv/gettext/.*(po)$},
-      ~r{lib/sribia_web/views/.*(ex)$},
-      ~r{lib/sribia_web/templates/.*(eex)$}
+      ~r{lib/abyss_web/views/.*(ex)$},
+      ~r{lib/abyss_web/templates/.*(eex)$}
     ]
   ]
 
@@ -49,10 +49,10 @@ config :logger, :console, format: "[$level] $message\n"
 config :phoenix, :stacktrace_depth, 20
 
 # Configure your database
-config :sribia, Sribia.Repo,
+config :abyss, Abyss.Repo,
   adapter: Ecto.Adapters.Postgres,
   username: "postgres",
   password: "postgres",
-  database: "sribia_dev",
+  database: "abyss_dev",
   hostname: "localhost",
   pool_size: 10

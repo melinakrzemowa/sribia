@@ -1,9 +1,9 @@
-defmodule Sribia.Mixfile do
+defmodule Abyss.Mixfile do
   use Mix.Project
 
   def project do
     [
-      app: :sribia,
+      app: :abyss,
       version: "0.0.1",
       elixir: "~> 1.4",
       elixirc_paths: elixirc_paths(Mix.env),
@@ -19,7 +19,7 @@ defmodule Sribia.Mixfile do
   # Type `mix help compile.app` for more information.
   def application do
     [
-      mod: {Sribia.Application, []},
+      mod: {Abyss.Application, []},
       extra_applications: [:logger, :runtime_tools]
     ]
   end

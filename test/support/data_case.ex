@@ -1,4 +1,4 @@
-defmodule Sribia.DataCase do
+defmodule Abyss.DataCase do
   @moduledoc """
   This module defines the setup for tests requiring
   access to the application's data layer.
@@ -16,20 +16,20 @@ defmodule Sribia.DataCase do
 
   using do
     quote do
-      alias Sribia.Repo
+      alias Abyss.Repo
 
       import Ecto
       import Ecto.Changeset
       import Ecto.Query
-      import Sribia.DataCase
+      import Abyss.DataCase
     end
   end
 
   setup tags do
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(Sribia.Repo)
+    :ok = Ecto.Adapters.SQL.Sandbox.checkout(Abyss.Repo)
 
     unless tags[:async] do
-      Ecto.Adapters.SQL.Sandbox.mode(Sribia.Repo, {:shared, self()})
+      Ecto.Adapters.SQL.Sandbox.mode(Abyss.Repo, {:shared, self()})
     end
 
     :ok

@@ -1,4 +1,4 @@
-defmodule SribiaWeb.ChannelCase do
+defmodule AbyssWeb.ChannelCase do
   @moduledoc """
   This module defines the test case to be used by
   channel tests.
@@ -21,15 +21,15 @@ defmodule SribiaWeb.ChannelCase do
       use Phoenix.ChannelTest
 
       # The default endpoint for testing
-      @endpoint SribiaWeb.Endpoint
+      @endpoint AbyssWeb.Endpoint
     end
   end
 
 
   setup tags do
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(Sribia.Repo)
+    :ok = Ecto.Adapters.SQL.Sandbox.checkout(Abyss.Repo)
     unless tags[:async] do
-      Ecto.Adapters.SQL.Sandbox.mode(Sribia.Repo, {:shared, self()})
+      Ecto.Adapters.SQL.Sandbox.mode(Abyss.Repo, {:shared, self()})
     end
     :ok
   end

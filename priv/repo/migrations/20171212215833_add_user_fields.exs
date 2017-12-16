@@ -1,4 +1,4 @@
-defmodule Sribia.Repo.Migrations.AddUserFields do
+defmodule Abyss.Repo.Migrations.AddUserFields do
   use Ecto.Migration
 
   def change do

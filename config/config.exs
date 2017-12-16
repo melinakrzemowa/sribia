@@ -6,15 +6,15 @@
 use Mix.Config
 
 # General application configuration
-config :sribia,
-  ecto_repos: [Sribia.Repo]
+config :abyss,
+  ecto_repos: [Abyss.Repo]
 
 # Configures the endpoint
-config :sribia, SribiaWeb.Endpoint,
+config :abyss, AbyssWeb.Endpoint,
   url: [host: "localhost"],
   secret_key_base: "b/T/fB/d30EtU/0pOSVYLkJyVCW3QJcz3oVuKBMmJ53pdONFJZ3TojQzCOaR5ge3",
-  render_errors: [view: SribiaWeb.ErrorView, accepts: ~w(html json)],
-  pubsub: [name: Sribia.PubSub,
+  render_errors: [view: AbyssWeb.ErrorView, accepts: ~w(html json)],
+  pubsub: [name: Abyss.PubSub,
            adapter: Phoenix.PubSub.PG2]
 
 # Configures Elixir's Logger
