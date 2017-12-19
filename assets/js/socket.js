@@ -5,8 +5,6 @@
 // and connect at the socket path in "lib/web/endpoint.ex":
 import {Socket} from "phoenix"
 
-console.log($('#game'));
-
 window.PIXI   = require('phaser-ce/build/custom/pixi');
 window.p2     = require('phaser-ce/build/custom/p2');
 window.Phaser = require('phaser-ce/build/custom/phaser-split');
@@ -14,8 +12,11 @@ window.Phaser = require('phaser-ce/build/custom/phaser-split');
 var game = new Phaser.Game(540, 540, Phaser.CANVAS, 'game', { preload: preload, create: create, update: update, render: render });
 let users = {};
 var field = 36;
-var user_id = window.user_id;
-let speed = 1;
+let player = {
+  id: window.user_id,
+  joined: false,
+  sprite: null
+};
 let socket;
 let gameChannel;
 
@@ -31,8 +32,6 @@ function create() {
   bg.x = -18;
   bg.y = -18;
   game.world.setBounds(-18, -18, 2142, 2142);
-
-  game.input.onTap.add(onTap, this);
 
   socket = new Socket("/socket", {params: {token: window.token}});
 
@@ -63,16 +62,21 @@ function create() {
 
   gameChannel = socket.channel("game:lobby", {});
 
-  gameChannel.on("move", payload => {
-    if (!users[payload.user_id]) {
-      createUser(payload);
-    }
-    move(payload);
+  gameChannel.on("joined", payload => {
+    $("#stats").html(`Speed: ${payload.speed}`);
+    player.speed = payload.speed;
+    player.sprite = createUserSprite(payload)
+    game.camera.follow(player.sprite);
+    player.sprite.anchor.setTo(0.5)
   });
 
-  gameChannel.on("stats", payload => {
-    $("#stats").html(`Speed: ${payload.speed}`);
-    speed = payload.speed;
+  gameChannel.on("move", user => {
+    if (user.user_id == player.id) return;
+
+    if (!users[user.user_id]) {
+      users[user.user_id] = {sprite: createUserSprite(user)};
+    }
+    move(user);
   });
 
   gameChannel.join()
@@ -82,43 +86,42 @@ function create() {
 
 function update() {
 
-    if (game.input.keyboard.isDown(Phaser.Keyboard.LEFT))
-    {
-      gameChannel.push("move", {direction: "w"});
-    }
 
-    if (game.input.keyboard.isDown(Phaser.Keyboard.RIGHT))
-    {
-      gameChannel.push("move", {direction: "e"});
-    }
 
-    if (game.input.keyboard.isDown(Phaser.Keyboard.UP))
-    {
-      gameChannel.push("move", {direction: "n"});
-    }
 
-    if (game.input.keyboard.isDown(Phaser.Keyboard.DOWN))
-    {
-      gameChannel.push("move", {direction: "s"});
-    }
+
+
+    // if (game.input.keyboard.isDown(Phaser.Keyboard.LEFT))
+    // {
+    //   gameChannel.push("move", {direction: "w"});
+    // }
+    //
+    // if (game.input.keyboard.isDown(Phaser.Keyboard.RIGHT))
+    // {
+    //   gameChannel.push("move", {direction: "e"});
+    // }
+    //
+    // if (game.input.keyboard.isDown(Phaser.Keyboard.UP))
+    // {
+    //   gameChannel.push("move", {direction: "n"});
+    // }
+    //
+    // if (game.input.keyboard.isDown(Phaser.Keyboard.DOWN))
+    // {
+    //   gameChannel.push("move", {direction: "s"});
+    // }
 
 }
 
 function render() {
   game.debug.cameraInfo(game.camera, 32, 32);
-
-  if (users[user_id]) {
-    game.debug.spriteInfo(users[user_id].sprite, 32, 200);
-    game.debug.spriteCoords(users[user_id].sprite, 32, 460);
+  if (player.joined) {
+    game.debug.spriteInfo(player.sprite, 32, 200);
+    game.debug.spriteCoords(player.sprite, 32, 460);
   }
 }
 
-function onTap(pointer) {
-  var x = pointer.x / field;
-  var y = pointer.y / field;
-}
-
-function createUser(user) {
+function createUserSprite(user) {
   var sprite = game.add.sprite(user.x * field, user.y * field, 'deathknight', 4);
   sprite.scale.setTo(0.5, 0.5);
   sprite.animations.add('n_move', [0, 8, 16, 24, 32]);
@@ -126,14 +129,11 @@ function createUser(user) {
   sprite.animations.add('s_move', [4, 12, 20, 28, 36]);
   sprite.animations.add('w_move', [6, 14, 22, 30, 38]);
 
-  users[user.user_id] = {sprite: sprite};
-  if (user.user_id == user_id) {
-    game.camera.follow(sprite);
-    sprite.anchor.setTo(0.5)
-  }
+  return sprite;
 }
 
 function move(user) {
+
   var x = user.x * field;
   var y = user.y * field;
 
