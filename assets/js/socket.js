@@ -4,6 +4,7 @@
 // To use Phoenix channels, the first step is to import Socket
 // and connect at the socket path in "lib/web/endpoint.ex":
 import {Socket} from "phoenix"
+import {Player} from "./player"
 
 window.PIXI   = require('phaser-ce/build/custom/pixi');
 window.p2     = require('phaser-ce/build/custom/p2');
@@ -14,8 +15,34 @@ let users = {};
 var field = 36;
 let player = {
   id: window.user_id,
+  position: {x: 0, y: 0},
   joined: false,
-  sprite: null
+  sprite: null,
+  moving: false,
+  movingPosition: {x: 0, y: 0},
+  movingTime: 0,
+  movingDistance: function() {
+    return 2;
+  },
+  move: function(left) {
+
+
+    if (left || player.movingPosition.x * field < player.sprite.x) {
+      if (left && player.movingPosition.x * field == player.sprite.x) {
+        player.position.x = player.movingPosition.x;
+        player.movingPosition.x--;
+        console.log("Position: ", player.position);
+      }
+      player.sprite.x -= player.movingDistance();
+    } else {
+      player.position.x = player.movingPosition.x;
+      if (player.moving) {
+        console.log("Position: ", player.position);
+      }
+      player.moving = false;
+      player.sprite.animations.stop();
+    }
+  }
 };
 let socket;
 let gameChannel;
@@ -65,7 +92,11 @@ function create() {
   gameChannel.on("joined", payload => {
     $("#stats").html(`Speed: ${payload.speed}`);
     player.speed = payload.speed;
-    player.sprite = createUserSprite(payload)
+    player.joined = true;
+    player.movingPosition.x = player.position.x = payload.x;
+    player.movingPosition.y = player.position.y = payload.y;
+
+    player.sprite = createUserSprite(payload);
     game.camera.follow(player.sprite);
     player.sprite.anchor.setTo(0.5)
   });
@@ -86,9 +117,24 @@ function create() {
 
 function update() {
 
+  if (!player.joined) return;
 
+  let direction = {x: 0, y: 0};
 
+  let input = false;
 
+  if (game.input.keyboard.isDown(Phaser.Keyboard.LEFT)) {
+    input = true;
+  }
+
+  if (!player.moving && input) {
+    player.moving = true;
+    player.movingTime = Date.now();
+    player.movingPosition = {x: player.position.x - 1, y: player.position.y};
+    player.sprite.animations.play('w_move', 30, true);
+  }
+
+  player.move(input);
 
 
     // if (game.input.keyboard.isDown(Phaser.Keyboard.LEFT))
