@@ -5,6 +5,7 @@
 // and connect at the socket path in "lib/web/endpoint.ex":
 import {Socket} from "phoenix"
 import {Player} from "./player"
+import {field} from "./globals"
 
 window.PIXI   = require('phaser-ce/build/custom/pixi');
 window.p2     = require('phaser-ce/build/custom/p2');
@@ -12,38 +13,7 @@ window.Phaser = require('phaser-ce/build/custom/phaser-split');
 
 var game = new Phaser.Game(540, 540, Phaser.CANVAS, 'game', { preload: preload, create: create, update: update, render: render });
 let users = {};
-var field = 36;
-let player = {
-  id: window.user_id,
-  position: {x: 0, y: 0},
-  joined: false,
-  sprite: null,
-  moving: false,
-  movingPosition: {x: 0, y: 0},
-  movingTime: 0,
-  movingDistance: function() {
-    return 2;
-  },
-  move: function(left) {
-
-
-    if (left || player.movingPosition.x * field < player.sprite.x) {
-      if (left && player.movingPosition.x * field == player.sprite.x) {
-        player.position.x = player.movingPosition.x;
-        player.movingPosition.x--;
-        console.log("Position: ", player.position);
-      }
-      player.sprite.x -= player.movingDistance();
-    } else {
-      player.position.x = player.movingPosition.x;
-      if (player.moving) {
-        console.log("Position: ", player.position);
-      }
-      player.moving = false;
-      player.sprite.animations.stop();
-    }
-  }
-};
+let player = new Player();
 let socket;
 let gameChannel;
 
