@@ -1,9 +1,9 @@
 import {field} from "./globals"
-import {gameChannel} from "./channels/game_channel"
 
-class Player {
+export default class Player {
 
-  constructor() {
+  constructor(state) {
+    this.state = state;
     this.id = window.user_id;
 
     this.position = {x: 0, y: 0};
@@ -16,14 +16,21 @@ class Player {
     this.moving = false;
     this.fps = 60;
 
-    gameChannel.on("joined", payload => {
+    this.state.channel.on("joined", payload => {
+      $("#stats").html(`Speed: ${payload.speed}`);
+
       this.joined = true;
       this.speed = payload.speed;
+
+      this.movingPosition.x = this.position.x = payload.x;
+      this.movingPosition.y = this.position.y = payload.y;
+
+      this.sprite = this.state.users.createUserSprite(payload);
+      this.state.camera.follow(this.sprite);
     });
 
-    gameChannel.on("move", payload => {
+    this.state.channel.on("move", payload => {
       if (payload.user_id != this.id) return;
-      console.log("Real position: ", payload);
 
       if (this.movingPosition.x != payload.x || this.movingPosition.y != payload.y) {
         this.sprite.x = payload.x * field;
@@ -39,7 +46,7 @@ class Player {
 
     if (!this.joined) return;
 
-    let input = (direction.x != 0 || direction.y != 0)
+    let input = (direction.x != 0 || direction.y != 0);
 
     // Start the movement after input
     if (!this.moving && input) {
@@ -47,7 +54,7 @@ class Player {
 
       this.movingPosition = {x: this.position.x + direction.x, y: this.position.y + direction.y};
       let animation = this.updateDirection(direction);
-      gameChannel.push("move", {direction: animation});
+      this.state.channel.push("move", {direction: animation});
     }
 
 
@@ -63,7 +70,7 @@ class Player {
         let animation = this.updateDirection(direction);
 
         console.log("Position: ", this.position);
-        gameChannel.push("move", {direction: animation});
+        this.state.channel.push("move", {direction: animation});
 
         this.fixPosition();
       }
@@ -129,7 +136,3 @@ class Player {
   }
 
 }
-
-let player = new Player();
-
-export {player};

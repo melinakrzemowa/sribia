@@ -1,6 +1,6 @@
 import socket from "../socket"
 
-class GameChannel {
+export default class GameChannel {
   constructor() {
     this.channel = socket.channel("game:lobby", {});
   }
@@ -19,7 +19,3 @@ class GameChannel {
     this.channel.push(event, data);
   }
 }
-
-var gameChannel = new GameChannel();
-
-export {gameChannel};
