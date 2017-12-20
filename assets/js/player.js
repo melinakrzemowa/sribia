@@ -64,6 +64,8 @@ class Player {
 
         console.log("Position: ", this.position);
         gameChannel.push("move", {direction: animation});
+
+        this.fixPosition();
       }
       this.sprite.x += this.movingDistance() * this.direction.x;
       this.sprite.y += this.movingDistance() * this.direction.y;
@@ -77,6 +79,8 @@ class Player {
       }
       this.moving = false;
       this.sprite.animations.stop();
+
+      this.fixPosition();
     }
   }
 
@@ -113,20 +117,15 @@ class Player {
   }
 
   inDestination() {
-    let reached = true;
-    if (this.direction.y > 0) {
-      reached = reached && this.movingPosition.y * field <= this.sprite.y;
-    }
-    if (this.direction.y < 0) {
-      reached = reached && this.movingPosition.y * field >= this.sprite.y;
-    }
-    if (this.direction.x > 0) {
-      reached = reached && this.movingPosition.x * field <= this.sprite.x;
-    }
-    if (this.direction.x < 0) {
-      reached = reached && this.movingPosition.x * field >= this.sprite.x;
-    }
-    return reached;
+    let epsilon = this.movingDistance();
+
+    return Math.abs(this.movingPosition.y * field - this.sprite.y) <= epsilon &&
+           Math.abs(this.movingPosition.x * field - this.sprite.x) <= epsilon;
+  }
+
+  fixPosition() {
+    this.sprite.x = this.position.x * field;
+    this.sprite.y = this.position.y * field;
   }
 
 }

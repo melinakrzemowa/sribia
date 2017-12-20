@@ -48,7 +48,7 @@ function create() {
     if (user.user_id == player.id) return;
 
     if (!users[user.user_id]) {
-      users[user.user_id] = {sprite: createUserSprite(user)};
+      users[user.user_id] = {sprite: createUserSprite(user), x: user.x, y: user.y};
     }
     move(user);
   });
@@ -97,27 +97,30 @@ function createUserSprite(user) {
 
 function move(user) {
 
-  var x = user.x * field;
-  var y = user.y * field;
+  var x = user.x;
+  var y = user.y;
 
-  if (x != users[user.user_id].sprite.x || y != users[user.user_id].sprite.y) {
+  if (x != users[user.user_id].x || y != users[user.user_id].y) {
 
     let animation = "";
-    if (y > users[user.user_id].sprite.y) animation += "s";
-    if (y < users[user.user_id].sprite.y) animation += "n";
-    if (x > users[user.user_id].sprite.x) animation += "e";
-    if (x < users[user.user_id].sprite.x) animation += "w";
+    if (y > users[user.user_id].y) animation += "s";
+    if (y < users[user.user_id].y) animation += "n";
+    if (x > users[user.user_id].x) animation += "e";
+    if (x < users[user.user_id].x) animation += "w";
 
+    users[user.user_id].moved = Date.now();
     users[user.user_id].sprite.animations.play(animation + '_move', 30, true);
 
-    var tween = game.add.tween(users[user.user_id].sprite).to( { x: x, y: y }, user.move_time, null, true);
-    tween.onComplete.add(function() {
-      users[user.user_id].sprite.x = x;
-      users[user.user_id].sprite.y = y;
-      users[user.user_id].sprite.animations.stop();
+    var tween = game.add.tween(users[user.user_id].sprite).to( { x: x * field, y: y * field}, user.move_time, null, true);
+    tween.onComplete.add(function(data) {
+      if(Date.now() - users[user.user_id].moved > 200) {
+        users[user.user_id].sprite.animations.stop();
+      }
     });
   } else {
     users[user.user_id].sprite.x = user.x * field;
     users[user.user_id].sprite.y = user.y * field;
   }
+  users[user.user_id].x = x;
+  users[user.user_id].y = y;
 }
