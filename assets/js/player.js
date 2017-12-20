@@ -28,7 +28,8 @@ class Player {
     });
 
     gameChannel.on("joined", payload => {
-      this.movingDistance = field / Math.round(100000 / (2 * (payload.speed - 1) + 220)) * (1000 / this.fps);
+      // this.movingDistance = field / Math.round(100000 / (2 * (payload.speed - 1) + 220)) * (1000 / this.fps);
+      this.movingDistance = 0.5;
       this.joined = true;
     });
   }
@@ -83,7 +84,7 @@ class Player {
     if (direction.x > 0) animation += "e";
     if (direction.x < 0) animation += "w";
 
-    this.sprite.animations.play(animation + '_move', 30, true);
+    this.sprite.animations.play(animation + '_move', 15, true);
 
     return animation;
   }

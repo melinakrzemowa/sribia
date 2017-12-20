@@ -107,7 +107,7 @@ function move(user) {
     if (x > users[user.user_id].sprite.x) animation += "e";
     if (x < users[user.user_id].sprite.x) animation += "w";
 
-    users[user.user_id].sprite.animations.play(animation + '_move', 30, true);
+    users[user.user_id].sprite.animations.play(animation + '_move', 15, true);
 
     var tween = game.add.tween(users[user.user_id].sprite).to( { x: x, y: y }, user.move_time, null, true);
     tween.onComplete.add(function() {

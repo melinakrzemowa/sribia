@@ -29,7 +29,7 @@ defmodule AbyssWeb.GameChannel do
     direction = String.to_existing_atom(direction)
     case Game.move(socket.assigns[:user_id], direction) do
       {:ok, {x, y}, move_time} ->
-        Process.send_after(self(), {:player_move, x, y}, move_time)
+        # Process.send_after(self(), {:player_move, x, y}, move_time)
         broadcast socket, "move", %{x: x, y: y, user_id: socket.assigns[:user_id], move_time: move_time}
         {:reply, {:ok, %{result: :moved}}, socket}
       {:error, {x, y}} ->
