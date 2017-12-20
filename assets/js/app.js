@@ -70,12 +70,13 @@ function update() {
 }
 
 function render() {
-  game.debug.cameraInfo(game.camera, 32, 32);
-  if (player.joined) {
-    game.debug.spriteInfo(player.sprite, 32, 180);
-    game.debug.spriteCoords(player.sprite, 32, 460);
-  }
+  // game.debug.cameraInfo(game.camera, 32, 32);
   game.debug.text(game.time.fps || '--', 2, 14, "#00ff00");
+  game.debug.text(`x: ${player.position.x} y: ${player.position.y}`, 2, 32, "#00ff00");
+  if (player.joined) {
+    // game.debug.spriteInfo(player.sprite, 32, 180);
+    game.debug.spriteCoords(player.sprite, 6, 500);
+  }
 }
 
 function createUserSprite(user) {
@@ -107,7 +108,7 @@ function move(user) {
     if (x > users[user.user_id].sprite.x) animation += "e";
     if (x < users[user.user_id].sprite.x) animation += "w";
 
-    users[user.user_id].sprite.animations.play(animation + '_move', 15, true);
+    users[user.user_id].sprite.animations.play(animation + '_move', 30, true);
 
     var tween = game.add.tween(users[user.user_id].sprite).to( { x: x, y: y }, user.move_time, null, true);
     tween.onComplete.add(function() {

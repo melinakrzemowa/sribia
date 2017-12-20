@@ -25,7 +25,7 @@ defmodule Abyss.Game do
         {:error, position} -> {:error, position}
       end
     else
-      {:error, :too_early}
+      {:error, {user.x, user.y}}
     end
   end
 
