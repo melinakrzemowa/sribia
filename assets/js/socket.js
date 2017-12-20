@@ -29,6 +29,7 @@ function create() {
   bg.x = -18;
   bg.y = -18;
   game.world.setBounds(-18, -18, 2142, 2142);
+  game.input.keyboard.addKeyCapture([Phaser.Keyboard.LEFT, Phaser.Keyboard.RIGHT, Phaser.Keyboard.UP, Phaser.Keyboard.DOWN]);
 
   socket = new Socket("/socket", {params: {token: window.token}});
 
@@ -71,7 +72,12 @@ function create() {
     player.sprite.anchor.setTo(0.5)
   });
 
+  gameChannel.join()
+    .receive("ok", resp => { console.log("Joined successfully", resp); })
+    .receive("error", resp => { console.log("Unable to join", resp) })
+
   gameChannel.on("move", user => {
+    console.log("Moved", user);
     if (user.user_id == player.id) return;
 
     if (!users[user.user_id]) {
@@ -80,53 +86,18 @@ function create() {
     move(user);
   });
 
-  gameChannel.join()
-    .receive("ok", resp => { console.log("Joined successfully", resp); })
-    .receive("error", resp => { console.log("Unable to join", resp) })
 }
 
 function update() {
 
-  if (!player.joined) return;
-
   let direction = {x: 0, y: 0};
 
-  let input = false;
+  if (game.input.keyboard.isDown(Phaser.Keyboard.LEFT)) direction.x--;
+  if (game.input.keyboard.isDown(Phaser.Keyboard.RIGHT)) direction.x++;
+  if (game.input.keyboard.isDown(Phaser.Keyboard.UP)) direction.y--;
+  if (game.input.keyboard.isDown(Phaser.Keyboard.DOWN)) direction.y++;
 
-  if (game.input.keyboard.isDown(Phaser.Keyboard.LEFT)) {
-    input = true;
-  }
-
-  if (!player.moving && input) {
-    player.moving = true;
-    player.movingTime = Date.now();
-    player.movingPosition = {x: player.position.x - 1, y: player.position.y};
-    player.sprite.animations.play('w_move', 30, true);
-  }
-
-  player.move(input);
-
-
-    // if (game.input.keyboard.isDown(Phaser.Keyboard.LEFT))
-    // {
-    //   gameChannel.push("move", {direction: "w"});
-    // }
-    //
-    // if (game.input.keyboard.isDown(Phaser.Keyboard.RIGHT))
-    // {
-    //   gameChannel.push("move", {direction: "e"});
-    // }
-    //
-    // if (game.input.keyboard.isDown(Phaser.Keyboard.UP))
-    // {
-    //   gameChannel.push("move", {direction: "n"});
-    // }
-    //
-    // if (game.input.keyboard.isDown(Phaser.Keyboard.DOWN))
-    // {
-    //   gameChannel.push("move", {direction: "s"});
-    // }
-
+  player.update(direction);
 }
 
 function render() {
@@ -144,6 +115,10 @@ function createUserSprite(user) {
   sprite.animations.add('e_move', [2, 10, 18, 26, 34]);
   sprite.animations.add('s_move', [4, 12, 20, 28, 36]);
   sprite.animations.add('w_move', [6, 14, 22, 30, 38]);
+  sprite.animations.add('ne_move', [1, 9, 17, 25, 33]);
+  sprite.animations.add('nw_move', [7, 15, 23, 31, 39]);
+  sprite.animations.add('se_move', [3, 11, 19, 27, 35]);
+  sprite.animations.add('sw_move', [5, 13, 21, 29, 37]);
 
   return sprite;
 }
@@ -155,24 +130,19 @@ function move(user) {
 
   if (x != users[user.user_id].sprite.x || y != users[user.user_id].sprite.y) {
 
-    if (x > users[user.user_id].sprite.x) {
-      users[user.user_id].sprite.animations.play('e_move', 30, true);
-    }
-    if (x < users[user.user_id].sprite.x) {
-      users[user.user_id].sprite.animations.play('w_move', 30, true);
-    }
-    if (y > users[user.user_id].sprite.y) {
-      users[user.user_id].sprite.animations.play('s_move', 30, true);
-    }
-    if (y < users[user.user_id].sprite.y) {
-      users[user.user_id].sprite.animations.play('n_move', 30, true);
-    }
+    let animation = "";
+    if (y > users[user.user_id].sprite.y) animation += "s";
+    if (y < users[user.user_id].sprite.y) animation += "n";
+    if (x > users[user.user_id].sprite.x) animation += "e";
+    if (x < users[user.user_id].sprite.x) animation += "w";
+
+    users[user.user_id].sprite.animations.play(animation + '_move', 30, true);
 
     var tween = game.add.tween(users[user.user_id].sprite).to( { x: x, y: y }, user.move_time, null, true);
     tween.onComplete.add(function() {
       users[user.user_id].sprite.x = x;
       users[user.user_id].sprite.y = y;
-      // users[user.user_id].sprite.animations.stop();
+      users[user.user_id].sprite.animations.stop();
     });
   } else {
     users[user.user_id].sprite.x = user.x * field;
