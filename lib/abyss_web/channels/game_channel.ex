@@ -18,16 +18,23 @@ defmodule AbyssWeb.GameChannel do
     {:noreply, socket}
   end
 
+  def handle_info({:player_move, x, y}, socket) do
+    push socket, "player_move", %{x: x, y: y}
+    {:noreply, socket}
+  end
+
   # It is also common to receive messages from the client and
   # broadcast to everyone in the current topic (game:lobby).
   def handle_in("move", %{"direction" => direction}, socket) do
     direction = String.to_existing_atom(direction)
     case Game.move(socket.assigns[:user_id], direction) do
       {:ok, {x, y}, move_time} ->
+        Process.send_after(self(), {:player_move, x, y}, move_time)
         broadcast socket, "move", %{x: x, y: y, user_id: socket.assigns[:user_id], move_time: move_time}
         {:reply, {:ok, %{result: :moved}}, socket}
       {:error, {x, y}} ->
         broadcast socket, "move", %{x: x, y: y, user_id: socket.assigns[:user_id]}
+        push socket, "player_move", %{x: x, y: y}
         {:reply, {:ok, %{result: :blocked}}, socket}
       {:error, :too_early} ->
         {:reply, {:ok, %{result: :too_early}}, socket}
