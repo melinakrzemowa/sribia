@@ -107,7 +107,7 @@ class Player {
     // console.log(distance);
 
 
-    return field / Math.round(100000 / (2 * (this.speed - 1) + 220)) * (1000 / this.fps);
+    return field / Math.round(100000 / (2 * (this.speed - 1) + 120)) * (1000 / this.fps);
 
     // s = v * t
     // t = 1000 / fps
