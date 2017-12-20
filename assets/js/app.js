@@ -42,7 +42,6 @@ function create() {
 
     player.sprite = createUserSprite(payload);
     game.camera.follow(player.sprite);
-    player.sprite.anchor.setTo(0.5)
   });
 
   gameChannel.on("move", user => {
@@ -82,6 +81,7 @@ function render() {
 function createUserSprite(user) {
   var sprite = game.add.sprite(user.x * field, user.y * field, 'deathknight', 4);
   sprite.scale.setTo(0.5, 0.5);
+  sprite.anchor.setTo(0.5)
   sprite.animations.add('n_move', [0, 8, 16, 24, 32]);
   sprite.animations.add('e_move', [2, 10, 18, 26, 34]);
   sprite.animations.add('s_move', [4, 12, 20, 28, 36]);
