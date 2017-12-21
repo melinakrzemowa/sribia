@@ -22,6 +22,7 @@ export default class MainState extends Phaser.State {
 
   create() {
     this.time.advancedTiming = true;
+    this.stage.disableVisibilityChange = true;
 
     let bg = this.add.tileSprite(0, 0, 1920, 1920, 'background')
     bg.scale.setTo(1.125, 1.125);
