@@ -1,15 +1,16 @@
 import { field } from "./globals"
 
+const mapSize = 10000;
+
 export default class UsersContainer {
 
   constructor(state) {
     this.state = state;
-    this.container = {};
-
+    this.container = {}; // users contained by user_id
+    this.map = new Map(); // users contained by point
   }
 
   createUserSprite(user) {
-    console.log(field);
     var sprite = this.state.add.sprite(user.x * field, user.y * field, 'deathknight', 4);
     sprite.scale.setTo(0.5, 0.5);
     sprite.anchor.setTo(0.5)
@@ -27,11 +28,16 @@ export default class UsersContainer {
 
   add(user) {
     if (!this.container[user.user_id]) {
-      this.container[user.user_id] = {
+      let userObj = {
         sprite: this.createUserSprite(user),
         x: user.x,
         y: user.y
       };
+
+      this.container[user.user_id] = userObj;
+      let key = user.x * mapSize + user.y;
+      this.map.set(key, userObj);
+      console.log(this.map);
     }
   }
 
@@ -39,29 +45,33 @@ export default class UsersContainer {
     return this.container[user_id];
   }
 
+  getFrom(x, y) {
+    return this.map.get(x * mapSize + y);
+  }
+
   move(payload) {
     let x = payload.x;
     let y = payload.y;
     let self = this;
 
-    // let user = this.get(payload.user_id);
+    let user = this.get(payload.user_id);
 
     // Check if sprite should be moved
-    if (x != this.container[payload.user_id].x || y != this.container[payload.user_id].y) {
+    if (x != user.x || y != user.y) {
 
       // Check which animation to play
       let animation = "";
-      if (y > this.container[payload.user_id].y) animation += "s";
-      if (y < this.container[payload.user_id].y) animation += "n";
-      if (x > this.container[payload.user_id].x) animation += "e";
-      if (x < this.container[payload.user_id].x) animation += "w";
+      if (y > user.y) animation += "s";
+      if (y < user.y) animation += "n";
+      if (x > user.x) animation += "e";
+      if (x < user.x) animation += "w";
 
       // Save last move time
-      this.container[payload.user_id].moved = Date.now();
+      user.moved = Date.now();
 
       // Move sprite with tween and play animation
-      this.container[payload.user_id].sprite.animations.play(animation + '_move', 30, true);
-      var tween = this.state.add.tween(this.container[payload.user_id].sprite).to( { x: x * field, y: y * field}, payload.move_time, null, true);
+      user.sprite.animations.play(animation + '_move', 30, true);
+      var tween = this.state.add.tween(user.sprite).to( { x: x * field, y: y * field}, payload.move_time, null, true);
       tween.onComplete.add(function() {
         // Stop animation if user stopped moving
         if(Date.now() - self.container[payload.user_id].moved > 200) {
@@ -70,13 +80,16 @@ export default class UsersContainer {
       });
     } else {
       // If sprite shouldn't be moved then set its position to correct one
-      this.container[payload.user_id].sprite.x = payload.x * field;
-      this.container[payload.user_id].sprite.y = payload.y * field;
+      user.sprite.x = payload.x * field;
+      user.sprite.y = payload.y * field;
     }
 
     // Save user position
-    this.container[payload.user_id].x = x;
-    this.container[payload.user_id].y = y;
+    this.map.delete(user.x * mapSize + user.y);
+    this.map.set(x * mapSize + y, user);
+
+    user.x = x;
+    user.y = y;
   }
 
 }

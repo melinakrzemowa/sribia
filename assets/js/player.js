@@ -50,10 +50,14 @@ export default class Player {
 
     // Start the movement after input
     if (!this.moving && input) {
-      this.moving = true;
-
-      this.movingPosition = {x: this.position.x + direction.x, y: this.position.y + direction.y};
+      let movingPosition = {x: this.position.x + direction.x, y: this.position.y + direction.y};
       let animation = this.updateDirection(direction);
+
+      // Check colision
+      if (this.state.users.getFrom(movingPosition.x, movingPosition.y)) return;
+
+      this.moving = true;
+      this.movingPosition = movingPosition;
       this.state.channel.push("move", {direction: animation});
     }
 
@@ -64,15 +68,20 @@ export default class Player {
         // Continue the movement if clicked and player reached destination
         this.position.x = this.movingPosition.x;
         this.position.y = this.movingPosition.y;
-        this.movingPosition.x += direction.x;
-        this.movingPosition.y += direction.y;
+        this.fixPosition();
 
         let animation = this.updateDirection(direction);
 
+        // Check colision
+        if (this.state.users.getFrom(this.movingPosition.x + direction.x, this.movingPosition.y + direction.y)) {
+          return;
+        }
+
+        this.movingPosition.x += direction.x;
+        this.movingPosition.y += direction.y;
+
         console.log("Position: ", this.position);
         this.state.channel.push("move", {direction: animation});
-
-        this.fixPosition();
       }
       this.sprite.x += this.movingDistance() * this.direction.x;
       this.sprite.y += this.movingDistance() * this.direction.y;
