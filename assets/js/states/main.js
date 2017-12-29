@@ -26,8 +26,12 @@ export default class MainState extends Phaser.State {
 
     this.stick = this.pad.addStick(0, 0, 200, 'generic');
     this.stick.alignBottomLeft(0);
-    // this.stick.alpha = 0;
-    // this.stick.enabled = false;
+
+    var md = new MobileDetect(window.navigator.userAgent);
+    if (!md.mobile()) {
+      this.stick.alpha = 0;
+      this.stick.enabled = false;
+    }
 
     let bg = this.add.tileSprite(0, 0, 1920, 1920, 'background')
     bg.scale.setTo(1.125, 1.125);
