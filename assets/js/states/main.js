@@ -1,7 +1,3 @@
-window.PIXI   = require('phaser-ce/build/custom/pixi');
-window.p2     = require('phaser-ce/build/custom/p2');
-window.Phaser = require('phaser-ce/build/custom/phaser-split');
-
 import {field} from "../globals"
 
 import GameChannel from "../channels/game_channel"
@@ -15,6 +11,7 @@ export default class MainState extends Phaser.State {
     this.player = new Player(this);
     this.users = new UsersContainer(this);
 
+    this.load.atlas('generic', '/sprites/skins/generic-joystick.png', '/sprites/skins/generic-joystick.json');
     this.load.image('ball', '/sprites/shinyball.png', field, field);
     this.load.image('background','/sprites/debug-grid-1920x1920.png');
     this.load.spritesheet('deathknight', '/sprites/deathknight.png', 72, 72, 76);
@@ -24,6 +21,13 @@ export default class MainState extends Phaser.State {
   create() {
     this.time.advancedTiming = true;
     this.stage.disableVisibilityChange = true;
+
+    this.pad = this.game.plugins.add(Phaser.VirtualJoystick);
+
+    this.stick = this.pad.addStick(0, 0, 200, 'generic');
+    this.stick.alignBottomLeft(0);
+    // this.stick.alpha = 0;
+    // this.stick.enabled = false;
 
     let bg = this.add.tileSprite(0, 0, 1920, 1920, 'background')
     bg.scale.setTo(1.125, 1.125);
@@ -48,10 +52,14 @@ export default class MainState extends Phaser.State {
   update() {
     let direction = {x: 0, y: 0};
 
-    if (this.input.keyboard.isDown(Phaser.Keyboard.LEFT)) direction.x--;
-    if (this.input.keyboard.isDown(Phaser.Keyboard.RIGHT)) direction.x++;
-    if (this.input.keyboard.isDown(Phaser.Keyboard.UP)) direction.y--;
-    if (this.input.keyboard.isDown(Phaser.Keyboard.DOWN)) direction.y++;
+    if (this.stick.isDown) {
+      direction = this.octantToDirection();
+    }
+
+    if (!this.stick.isDown && this.input.keyboard.isDown(Phaser.Keyboard.LEFT)) direction.x--;
+    if (!this.stick.isDown && this.input.keyboard.isDown(Phaser.Keyboard.RIGHT)) direction.x++;
+    if (!this.stick.isDown && this.input.keyboard.isDown(Phaser.Keyboard.UP)) direction.y--;
+    if (!this.stick.isDown && this.input.keyboard.isDown(Phaser.Keyboard.DOWN)) direction.y++;
 
     this.player.update(direction, this.time.fps);
   }
@@ -63,6 +71,20 @@ export default class MainState extends Phaser.State {
     if (this.player.joined) {
       // this.debug.spriteInfo(player.sprite, 32, 180);
       this.game.debug.spriteCoords(this.player.sprite, 6, 500);
+    }
+  }
+
+  octantToDirection() {
+    switch(this.stick.octant) {
+      case 0:   return {x: 1, y: 0};
+      case 45:  return {x: 1, y: 1};
+      case 90:  return {x: 0, y: 1};
+      case 135: return {x: -1, y: 1};
+      case 180: return {x: -1, y: 0};
+      case 225: return {x: -1, y: -1};
+      case 270: return {x: 0, y: -1};
+      case 315: return {x: 1, y: -1};
+      case 360: return {x: 1, y: 0};
     }
   }
 

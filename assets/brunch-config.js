@@ -60,5 +60,8 @@ exports.config = {
       Popper: "popper.js",
       bootstrap: 'bootstrap'
     },
+    static: [
+      'node_modules/phaser-ce/build/phaser.min.js'
+    ]
   }
 };
