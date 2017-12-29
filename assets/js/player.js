@@ -12,31 +12,40 @@ export default class Player {
 
     this.speed = 1;
     this.joined = false;
+    this.name = "";
     this.sprite = null;
+    this.nameText = null;
     this.moving = false;
     this.fps = 60;
 
     this.state.channel.on("joined", payload => {
-      $("#stats").html(`Speed: ${payload.speed}`);
-
       this.joined = true;
       this.speed = payload.speed;
+      this.name = payload.name;
 
       this.movingPosition.x = this.position.x = payload.x;
       this.movingPosition.y = this.position.y = payload.y;
 
       this.sprite = this.state.users.createUserSprite(payload);
       this.state.camera.follow(this.sprite);
+
+      let style = { font: "bold 11px Tahoma", fill: "#3CBC3C", align: "center"};
+
+      this.nameText = this.state.add.text(this.sprite.x, this.sprite.y - 12, this.name, style);
+      this.nameText.anchor.set(0.5);
     });
 
     this.state.channel.on("move", payload => {
+      // Ignore other users
       if (payload.user_id != this.id) return;
 
+      // If player move is blocked then stop movement
       if (this.movingPosition.x != payload.x || this.movingPosition.y != payload.y) {
         this.sprite.x = payload.x * field;
         this.sprite.y = payload.y * field;
         this.movingPosition = {x: payload.x, y: payload.y}
         this.position = {x: payload.x, y: payload.y}
+        this.setTextPosition();
       }
     });
   }
@@ -61,7 +70,6 @@ export default class Player {
       this.state.channel.push("move", {direction: animation});
     }
 
-
     if (input || !this.inDestination()) {
       // Continue the movement if clicked or the player not in destination yet
       if (input && this.inDestination()) {
@@ -85,6 +93,7 @@ export default class Player {
       }
       this.sprite.x += this.movingDistance() * this.direction.x;
       this.sprite.y += this.movingDistance() * this.direction.y;
+      this.setTextPosition();
     } else {
       // Finish the movement
       this.position.x = this.movingPosition.x;
@@ -142,6 +151,12 @@ export default class Player {
   fixPosition() {
     this.sprite.x = this.position.x * field;
     this.sprite.y = this.position.y * field;
+    this.setTextPosition();
+  }
+
+  setTextPosition() {
+    this.nameText.x = this.sprite.x;
+    this.nameText.y = this.sprite.y - 12;
   }
 
 }
