@@ -88,8 +88,9 @@ export default class UsersContainer {
       tween.onComplete.add(function() {
         // Stop animation if user stopped moving
         if(Date.now() - self.container[payload.user_id].moved > 200) {
-          self.container[payload.user_id].sprite.animations.stop();
-          self.container[payload.user_id].sprite.animations.play(animation + '_stand', 0, true);
+          user.sprite.animations.stop();
+          user.sprite.animations.play(animation + '_stand', 0, true);
+          user.nameText.update();
         }
       });
       tween.onUpdateCallback(() => {
