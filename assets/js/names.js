@@ -16,4 +16,8 @@ export default class NameText {
     this.nameText.bringToTop();
   }
 
+  destroy() {
+    this.nameText.destroy();
+  }
+
 }

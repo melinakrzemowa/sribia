@@ -20,6 +20,10 @@ export default class Player {
     this.fps = 60;
 
     this.state.channel.on("joined", payload => {
+      // reset state on reconnect
+      if (this.sprite) this.sprite.destroy();
+      if (this.nameText) this.nameText.destroy();
+
       this.joined = true;
       this.speed = payload.speed;
       this.name = payload.name;
