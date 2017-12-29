@@ -29,9 +29,9 @@ export default class Player {
       this.sprite = this.state.users.createUserSprite(payload);
       this.state.camera.follow(this.sprite);
 
-      let style = { font: "bold 11px Tahoma", fill: "#3CBC3C", align: "center"};
+      let style = { font: "bold 12px Tahoma", fill: "#43d637", align: "center", stroke: '#000000', strokeThickness: 2};
 
-      this.nameText = this.state.add.text(this.sprite.x, this.sprite.y - 12, this.name, style);
+      this.nameText = this.state.add.text(this.sprite.x, this.sprite.y - 24, this.name, style);
       this.nameText.anchor.set(0.5);
     });
 
@@ -117,7 +117,7 @@ export default class Player {
     if (direction.x > 0) animation += "e";
     if (direction.x < 0) animation += "w";
 
-    this.sprite.animations.play(animation + '_move', 30, true);
+    this.sprite.animations.play(animation + '_move', 8, true);
 
     return animation;
   }
@@ -156,7 +156,7 @@ export default class Player {
 
   setTextPosition() {
     this.nameText.x = this.sprite.x;
-    this.nameText.y = this.sprite.y - 12;
+    this.nameText.y = this.sprite.y - 24;
   }
 
 }

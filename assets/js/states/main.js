@@ -18,6 +18,7 @@ export default class MainState extends Phaser.State {
     this.load.image('ball', '/sprites/shinyball.png', field, field);
     this.load.image('background','/sprites/debug-grid-1920x1920.png');
     this.load.spritesheet('deathknight', '/sprites/deathknight.png', 72, 72, 76);
+    this.load.spritesheet('babe', '/sprites/babe.png', 144, 144, 40);
   }
 
   create() {

@@ -11,17 +11,26 @@ export default class UsersContainer {
   }
 
   createUserSprite(user) {
-    var sprite = this.state.add.sprite(user.x * field, user.y * field, 'deathknight', 4);
-    sprite.scale.setTo(0.5, 0.5);
+    var sprite = this.state.add.sprite(user.x * field, user.y * field, 'babe');
+    sprite.scale.setTo(0.35, 0.35);
     sprite.anchor.setTo(0.5)
-    sprite.animations.add('n_move', [0, 8, 16, 24, 32]);
-    sprite.animations.add('e_move', [2, 10, 18, 26, 34]);
-    sprite.animations.add('s_move', [4, 12, 20, 28, 36]);
-    sprite.animations.add('w_move', [6, 14, 22, 30, 38]);
-    sprite.animations.add('ne_move', [1, 9, 17, 25, 33]);
-    sprite.animations.add('nw_move', [7, 15, 23, 31, 39]);
-    sprite.animations.add('se_move', [3, 11, 19, 27, 35]);
-    sprite.animations.add('sw_move', [5, 13, 21, 29, 37]);
+
+    sprite.animations.add('s_stand', [0]);
+    sprite.animations.add('n_stand', [5]);
+    sprite.animations.add('e_stand', [10]);
+    sprite.animations.add('w_stand', [15]);
+    sprite.animations.add('ne_stand', [20]);
+    sprite.animations.add('se_stand', [25]);
+    sprite.animations.add('sw_stand', [30]);
+    sprite.animations.add('nw_stand', [35]);
+    sprite.animations.add('s_move', [1, 2, 3, 4]);
+    sprite.animations.add('n_move', [6, 7, 8, 9]);
+    sprite.animations.add('e_move', [11, 12, 13, 14]);
+    sprite.animations.add('w_move', [16, 17, 18, 19]);
+    sprite.animations.add('ne_move', [21, 22, 23, 24]);
+    sprite.animations.add('se_move', [26, 27, 28, 29]);
+    sprite.animations.add('sw_move', [31, 32, 33, 34]);
+    sprite.animations.add('nw_move', [36, 37, 38, 39]);
 
     return sprite;
   }
@@ -70,7 +79,7 @@ export default class UsersContainer {
       user.moved = Date.now();
 
       // Move sprite with tween and play animation
-      user.sprite.animations.play(animation + '_move', 30, true);
+      user.sprite.animations.play(animation + '_move', 8, true);
       var tween = this.state.add.tween(user.sprite).to( { x: x * field, y: y * field}, payload.move_time, null, true);
       tween.onComplete.add(function() {
         // Stop animation if user stopped moving
