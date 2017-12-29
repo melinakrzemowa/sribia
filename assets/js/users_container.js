@@ -1,4 +1,5 @@
 import { field } from "./globals"
+import NameText from "./names"
 
 const mapSize = 10000;
 
@@ -40,8 +41,11 @@ export default class UsersContainer {
       let userObj = {
         sprite: this.createUserSprite(user),
         x: user.x,
-        y: user.y
+        y: user.y,
+        name: user.name
       };
+
+      userObj.nameText = new NameText(this.state.add, userObj);
 
       this.container[user.user_id] = userObj;
       let key = user.x * mapSize + user.y;
@@ -58,7 +62,7 @@ export default class UsersContainer {
     return this.map.get(x * mapSize + y);
   }
 
-  move(payload) {
+  update(payload) {
     let x = payload.x;
     let y = payload.y;
     let self = this;
@@ -86,6 +90,9 @@ export default class UsersContainer {
         if(Date.now() - self.container[payload.user_id].moved > 200) {
           self.container[payload.user_id].sprite.animations.stop();
         }
+      });
+      tween.onUpdateCallback(() => {
+        user.nameText.update();
       });
     } else {
       // If sprite shouldn't be moved then set its position to correct one

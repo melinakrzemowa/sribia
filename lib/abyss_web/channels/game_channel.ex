@@ -14,6 +14,7 @@ defmodule AbyssWeb.GameChannel do
 
   def handle_info({:joined, user}, socket) do
     push socket, "joined", %{user_id: user.id, name: user.name, speed: user.speed, x: user.x, y: user.y}
+    # broadcast socket, "user_joined", %{user_id: user.id, name: user.name, speed: user.speed, x: user.x, y: user.y}
     {:noreply, socket}
   end
 
