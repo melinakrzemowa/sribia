@@ -1,4 +1,5 @@
 import {field} from "./globals"
+import NameText from "./names"
 
 export default class Player {
 
@@ -29,10 +30,7 @@ export default class Player {
       this.sprite = this.state.users.createUserSprite(payload);
       this.state.camera.follow(this.sprite);
 
-      let style = { font: "bold 12px Tahoma", fill: "#43d637", align: "center", stroke: '#000000', strokeThickness: 2};
-
-      this.nameText = this.state.add.text(this.sprite.x, this.sprite.y - 24, this.name, style);
-      this.nameText.anchor.set(0.5);
+      this.nameText = new NameText(this.state.add, this);
     });
 
     this.state.channel.on("move", payload => {
@@ -45,7 +43,7 @@ export default class Player {
         this.sprite.y = payload.y * field;
         this.movingPosition = {x: payload.x, y: payload.y}
         this.position = {x: payload.x, y: payload.y}
-        this.setTextPosition();
+        this.nameText.update();
       }
     });
   }
@@ -93,7 +91,7 @@ export default class Player {
       }
       this.sprite.x += this.movingDistance() * this.direction.x;
       this.sprite.y += this.movingDistance() * this.direction.y;
-      this.setTextPosition();
+      this.nameText.update();
     } else {
       // Finish the movement
       this.position.x = this.movingPosition.x;
@@ -151,12 +149,7 @@ export default class Player {
   fixPosition() {
     this.sprite.x = this.position.x * field;
     this.sprite.y = this.position.y * field;
-    this.setTextPosition();
-  }
-
-  setTextPosition() {
-    this.nameText.x = this.sprite.x;
-    this.nameText.y = this.sprite.y - 24;
+    this.nameText.update();
   }
 
 }
