@@ -13,6 +13,13 @@ defmodule Abyss.Game do
     update_user_position(user, position)
   end
 
+  def get_users do
+    Board.get_users()
+    |> Enum.map(fn id ->
+      Accounts.get_user!(id)
+    end)
+  end
+
   def move(user_id, direction) do
     user = Accounts.get_user!(user_id)
     move_time = round(100000 / (2 * (user.speed - 1) + 120))

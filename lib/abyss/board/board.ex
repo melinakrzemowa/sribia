@@ -20,6 +20,10 @@ defmodule Abyss.Board do
     GenServer.call(__MODULE__, {:move, user_id, direction})
   end
 
+  def get_users do
+    GenServer.call(__MODULE__, {:get_users})
+  end
+
   # SERVER
 
   def handle_call({:get_position, user_id}, _from, %{board: _board, users: users} = state) do
@@ -53,6 +57,10 @@ defmodule Abyss.Board do
       _ ->
         {:reply, {:error, user_position}, state}
     end
+  end
+
+  def handle_call({:get_users}, _from, %{users: users} = state) do
+    {:reply, Enum.map(users, fn {id, _v} -> id end), state}
   end
 
 end

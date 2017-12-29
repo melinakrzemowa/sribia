@@ -14,7 +14,10 @@ defmodule AbyssWeb.GameChannel do
 
   def handle_info({:joined, user}, socket) do
     push socket, "joined", %{user_id: user.id, name: user.name, speed: user.speed, x: user.x, y: user.y}
-    # broadcast socket, "user_joined", %{user_id: user.id, name: user.name, speed: user.speed, x: user.x, y: user.y}
+    broadcast socket, "user_joined", %{user_id: user.id, name: user.name, speed: user.speed, x: user.x, y: user.y}
+    Enum.each(Game.get_users(), fn user ->
+      push socket, "user_joined", %{user_id: user.id, name: user.name, speed: user.speed, x: user.x, y: user.y}
+    end)
     {:noreply, socket}
   end
 
@@ -30,6 +33,17 @@ defmodule AbyssWeb.GameChannel do
         broadcast socket, "move", %{x: x, y: y, user_id: socket.assigns[:user_id]}
         push socket, "blocked", %{x: x, y: y}
         {:noreply, socket}
+    end
+  end
+
+  intercept ["user_joined"]
+
+  def handle_out("user_joined", msg, socket) do
+    if socket.assigns[:user_id] == msg.user_id do
+      {:noreply, socket}
+    else
+      push socket, "user_joined", msg
+      {:noreply, socket}
     end
   end
 

@@ -34,9 +34,12 @@ export default class MainState extends Phaser.State {
 
     this.channel.on("move", user => {
       if (user.user_id == this.player.id) return;
-
-      this.users.add(user);
       this.users.update(user);
+    });
+
+    this.channel.on("user_joined", user => {
+      if (user.user_id == this.player.id) return;
+      this.users.add(user);
     });
 
     this.channel.join();
