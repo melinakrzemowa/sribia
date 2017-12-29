@@ -102,41 +102,33 @@ export default class Player {
       }
       this.moving = false;
       this.sprite.animations.stop();
+      let animation = this.getAnimation();
+      this.sprite.animations.play(animation + '_stand', 0, true);
 
       this.fixPosition();
     }
   }
 
+  getAnimation() {
+    let animation = "";
+    if (this.direction.y > 0) animation += "s";
+    if (this.direction.y < 0) animation += "n";
+    if (this.direction.x > 0) animation += "e";
+    if (this.direction.x < 0) animation += "w";
+    return animation;
+  }
+
   updateDirection(direction) {
     this.direction = direction;
-    let animation = "";
-    if (direction.y > 0) animation += "s";
-    if (direction.y < 0) animation += "n";
-    if (direction.x > 0) animation += "e";
-    if (direction.x < 0) animation += "w";
+    let animation = this.getAnimation();
 
     this.sprite.animations.play(animation + '_move', 8, true);
-
     return animation;
   }
 
   movingDistance() {
-    // let now = Date.now();
-    // let time = this.movingTime - now;
-
-    // let fullDistance = Math.sqrt(Math.pow(this.position.x * field - this.movingPosition.x * field, 2) + Math.pow(this.position.y * field - this.movingPosition.y * field, 2))
-    // let distance = Math.sqrt(Math.pow(this.movingPosition.y * field - this.sprite.y, 2) + Math.pow(this.movingPosition.x * field - this.sprite.x, 2));
-    // console.log(fullDistance);
-    // console.log(distance);
-
-
-    return field / Math.round(100000 / (2 * (this.speed - 1) + 120)) * (1000 / this.fps);
-
-    // s = v * t
-    // t = 1000 / fps
-    // v = distance / time
-
-    // return 1.45635673567;
+    let distance = field / Math.round(100000 / (2 * (this.speed - 1) + 120)) * (1000 / this.fps);
+    return distance > field ? field : distance;
   }
 
   inDestination() {
