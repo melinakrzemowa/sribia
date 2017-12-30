@@ -16,34 +16,47 @@ export default class MainState extends Phaser.State {
 
     this.load.atlas('generic', '/sprites/skins/generic-joystick.png', '/sprites/skins/generic-joystick.json');
     this.load.image('ball', '/sprites/shinyball.png', field, field);
-    this.load.image('background','/sprites/debug-grid-1920x1920.png');
+    this.load.image('background','/sprites/earth_grid.png');
     this.load.spritesheet('deathknight', '/sprites/deathknight.png', 72, 72, 76);
     this.load.spritesheet('babe', '/sprites/babe.png', 144, 144, 40);
+    this.load.spritesheet('tree', '/sprites/trees.png', 432, 576, 2);
   }
 
   create() {
+    // FPS
     this.time.advancedTiming = true;
+    // Window active in background
     this.stage.disableVisibilityChange = true;
 
+    // Add Joystick
     this.pad = this.game.plugins.add(Phaser.VirtualJoystick);
 
     this.stick = this.pad.addStick(0, 0, 200, 'generic');
     this.stick.alignBottomLeft(0);
 
+    // Verify if on mobile
     var md = new MobileDetect(window.navigator.userAgent);
     if (!md.mobile()) {
       this.stick.alpha = 0;
       this.stick.enabled = false;
     }
 
+    // Create background
     let bg = this.add.tileSprite(0, 0, 1920, 1920, 'background')
-    bg.scale.setTo(1, 1);
-    bg.x = -36;
-    bg.y = -36;
+    bg.scale.setTo(0.25, 0.25);
+    // bg.x = -36;
+    // bg.y = -36;
     this.world.sendToBack(bg);
-    this.world.setBounds(-36, -36, 2142, 2142);
+    this.world.setBounds(0, 0, 2142, 2142);
     this.input.keyboard.addKeyCapture([Phaser.Keyboard.LEFT, Phaser.Keyboard.RIGHT, Phaser.Keyboard.UP, Phaser.Keyboard.DOWN]);
 
+    // Create environement
+    let tile = this.map.getTile(8, 8);
+    tile.createEnv('tree');
+    tile.blocks = true;
+
+
+    // Join channels to listen on events from backend
     this.channel.on("move", user => {
       if (user.user_id == this.player.id) return;
       this.users.move(user);

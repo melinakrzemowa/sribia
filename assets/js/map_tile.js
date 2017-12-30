@@ -14,6 +14,8 @@ export default class MapTile {
 
   createEnv(name) {
     let sprite = this.map.state.group.create(this.x * field, this.y * field, name);
+    sprite.scale.setTo(0.25, 0.25);
+    sprite.anchor.setTo(0.5, 1)
     this.envSprites.push(sprite);
   }
 
