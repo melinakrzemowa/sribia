@@ -51,11 +51,11 @@ export default class MainState extends Phaser.State {
 
     // Create test environement
     let tile = this.map.getTile(8, 8);
-    tile.createEnv('tree', 0, 0.5, 1);
+    tile.createEnv('tree', 0, 0.5, 0.875);
     tile.blocks = true;
 
     tile = this.map.getTile(4, 5);
-    tile.createEnv('tree2', 2, 0.25, 1);
+    tile.createEnv('tree2', 2, 0.25, 0.875);
     tile.blocks = true;
 
 
