@@ -45,16 +45,12 @@ export default class UsersContainer {
       userObj.nameText = new NameText(this.state.add, userObj);
 
       this.container[user.user_id] = userObj;
-      this.state.map.set(user.x, user.y, userObj);
+      this.state.map.putObject(user.x, user.y, userObj);
     }
   }
 
   get(user_id) {
     return this.container[user_id];
-  }
-
-  getFrom(x, y) {
-    return this.state.map.get(x, y);
   }
 
   move(payload) {
@@ -98,8 +94,8 @@ export default class UsersContainer {
     }
 
     // Save user position
-    this.state.map.delete(user.x, user.y);
-    this.state.map.set(x, y, user);
+    this.state.map.deleteObject(user.x, user.y, user);
+    this.state.map.putObject(x, y, user);
 
     user.x = x;
     user.y = y;

@@ -65,7 +65,7 @@ export default class Player {
       let animation = this.updateDirection(direction);
 
       // Check colision
-      if (this.state.users.getFrom(movingPosition.x, movingPosition.y)) return;
+      if (this.state.map.isBlocked(movingPosition.x, movingPosition.y)) return;
 
       this.moving = true;
       this.movingPosition = movingPosition;
@@ -83,7 +83,7 @@ export default class Player {
         let animation = this.updateDirection(direction);
 
         // Check colision
-        if (this.state.users.getFrom(this.movingPosition.x + direction.x, this.movingPosition.y + direction.y)) {
+        if (this.state.map.isBlocked(this.movingPosition.x + direction.x, this.movingPosition.y + direction.y)) {
           return;
         }
 

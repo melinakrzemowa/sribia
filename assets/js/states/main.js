@@ -1,6 +1,6 @@
 import {field} from "../globals"
 
-import ObjectMap from "../object_map"
+import GameMap from "../game_map"
 import GameChannel from "../channels/game_channel"
 import Player from "../player"
 import UsersContainer from "../users_container"
@@ -8,7 +8,7 @@ import UsersContainer from "../users_container"
 export default class MainState extends Phaser.State {
 
   preload() {
-    this.map = new ObjectMap(this);
+    this.map = new GameMap(this);
     this.channel = new GameChannel();
     this.player = new Player(this);
     this.users = new UsersContainer(this);
