@@ -1,19 +1,15 @@
 import { field } from "./globals"
 import NameText from "./names"
 
-const mapSize = 10000;
-
 export default class UsersContainer {
 
   constructor(state) {
     this.state = state;
     this.container = {}; // users contained by user_id
-    this.map = new Map(); // users contained by point
   }
 
   createUserSprite(user) {
     let sprite = this.state.group.create(user.x * field, user.y * field, 'babe');
-    // var sprite = this.state.add.sprite(user.x * field, user.y * field, 'babe');
     sprite.scale.setTo(0.5, 0.5);
     sprite.anchor.setTo(0.5)
 
@@ -49,8 +45,7 @@ export default class UsersContainer {
       userObj.nameText = new NameText(this.state.add, userObj);
 
       this.container[user.user_id] = userObj;
-      let key = user.x * mapSize + user.y;
-      this.map.set(key, userObj);
+      this.state.map.set(user.x, user.y, userObj);
     }
   }
 
@@ -59,7 +54,7 @@ export default class UsersContainer {
   }
 
   getFrom(x, y) {
-    return this.map.get(x * mapSize + y);
+    return this.state.map.get(x, y);
   }
 
   move(payload) {
@@ -103,8 +98,8 @@ export default class UsersContainer {
     }
 
     // Save user position
-    this.map.delete(user.x * mapSize + user.y);
-    this.map.set(x * mapSize + y, user);
+    this.state.map.delete(user.x, user.y);
+    this.state.map.set(x, y, user);
 
     user.x = x;
     user.y = y;

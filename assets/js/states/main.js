@@ -1,5 +1,6 @@
 import {field} from "../globals"
 
+import ObjectMap from "../object_map"
 import GameChannel from "../channels/game_channel"
 import Player from "../player"
 import UsersContainer from "../users_container"
@@ -7,6 +8,7 @@ import UsersContainer from "../users_container"
 export default class MainState extends Phaser.State {
 
   preload() {
+    this.map = new ObjectMap(this);
     this.channel = new GameChannel();
     this.player = new Player(this);
     this.users = new UsersContainer(this);
@@ -35,11 +37,11 @@ export default class MainState extends Phaser.State {
     }
 
     let bg = this.add.tileSprite(0, 0, 1920, 1920, 'background')
-    bg.scale.setTo(1.125, 1.125);
-    bg.x = -18;
-    bg.y = -18;
+    bg.scale.setTo(1, 1);
+    bg.x = -36;
+    bg.y = -36;
     this.world.sendToBack(bg);
-    this.world.setBounds(-18, -18, 2142, 2142);
+    this.world.setBounds(-36, -36, 2142, 2142);
     this.input.keyboard.addKeyCapture([Phaser.Keyboard.LEFT, Phaser.Keyboard.RIGHT, Phaser.Keyboard.UP, Phaser.Keyboard.DOWN]);
 
     this.channel.on("move", user => {
