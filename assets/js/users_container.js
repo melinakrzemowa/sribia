@@ -12,8 +12,9 @@ export default class UsersContainer {
   }
 
   createUserSprite(user) {
-    var sprite = this.state.add.sprite(user.x * field, user.y * field, 'babe');
-    sprite.scale.setTo(0.35, 0.35);
+    let sprite = this.state.group.create(user.x * field, user.y * field, 'babe');
+    // var sprite = this.state.add.sprite(user.x * field, user.y * field, 'babe');
+    sprite.scale.setTo(0.5, 0.5);
     sprite.anchor.setTo(0.5)
 
     sprite.animations.add('s_stand', [0]);
@@ -50,7 +51,6 @@ export default class UsersContainer {
       this.container[user.user_id] = userObj;
       let key = user.x * mapSize + user.y;
       this.map.set(key, userObj);
-      console.log(this.map);
     }
   }
 
@@ -62,7 +62,7 @@ export default class UsersContainer {
     return this.map.get(x * mapSize + y);
   }
 
-  update(payload) {
+  move(payload) {
     let x = payload.x;
     let y = payload.y;
     let self = this;

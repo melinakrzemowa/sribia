@@ -8,12 +8,13 @@ export default class NameText {
     this.nameText = objectFactory.text(object.sprite.x, object.sprite.y - 24, object.name, style);
     this.nameText.anchor.set(0.5);
     this.nameText.bringToTop();
+    this.nameText.alpha = 0;
   }
 
   update() {
     this.nameText.x = this.object.sprite.x;
     this.nameText.y = this.object.sprite.y - 24;
-    this.nameText.bringToTop();
+    // this.nameText.bringToTop();
   }
 
   destroy() {

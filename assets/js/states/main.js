@@ -10,6 +10,7 @@ export default class MainState extends Phaser.State {
     this.channel = new GameChannel();
     this.player = new Player(this);
     this.users = new UsersContainer(this);
+    this.group = this.add.group();
 
     this.load.atlas('generic', '/sprites/skins/generic-joystick.png', '/sprites/skins/generic-joystick.json');
     this.load.image('ball', '/sprites/shinyball.png', field, field);
@@ -37,12 +38,13 @@ export default class MainState extends Phaser.State {
     bg.scale.setTo(1.125, 1.125);
     bg.x = -18;
     bg.y = -18;
+    this.world.sendToBack(bg);
     this.world.setBounds(-18, -18, 2142, 2142);
     this.input.keyboard.addKeyCapture([Phaser.Keyboard.LEFT, Phaser.Keyboard.RIGHT, Phaser.Keyboard.UP, Phaser.Keyboard.DOWN]);
 
     this.channel.on("move", user => {
       if (user.user_id == this.player.id) return;
-      this.users.update(user);
+      this.users.move(user);
     });
 
     this.channel.on("user_joined", user => {
@@ -66,6 +68,8 @@ export default class MainState extends Phaser.State {
     if (!this.stick.isDown && this.input.keyboard.isDown(Phaser.Keyboard.DOWN)) direction.y++;
 
     this.player.update(direction, this.time.fps);
+
+    this.group.sort('y', Phaser.Group.SORT_ASCENDING);
   }
 
   render() {
