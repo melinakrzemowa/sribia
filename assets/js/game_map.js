@@ -1,5 +1,4 @@
-const mapSize = 10000;
-
+import { mapSize } from "./globals"
 import MapTile from "./map_tile"
 
 export default class GameMap {

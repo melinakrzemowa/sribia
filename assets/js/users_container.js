@@ -1,4 +1,4 @@
-import { field } from "./globals"
+import { field, scale } from "./globals"
 import NameText from "./names"
 
 export default class UsersContainer {
@@ -10,8 +10,8 @@ export default class UsersContainer {
 
   createUserSprite(user) {
     let sprite = this.state.group.create(user.x * field, user.y * field, 'babe');
-    sprite.scale.setTo(0.5, 0.5);
-    sprite.anchor.setTo(0.5)
+    sprite.scale.setTo(2 * scale, 2 * scale);
+    sprite.anchor.setTo(0.5, 0.75)
 
     sprite.animations.add('s_stand', [0]);
     sprite.animations.add('n_stand', [5]);

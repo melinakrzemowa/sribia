@@ -1,4 +1,4 @@
-import {field} from "./globals"
+import {field, scale} from "./globals"
 
 export default class MapTile {
 
@@ -12,10 +12,11 @@ export default class MapTile {
     this.objects = [];
   }
 
-  createEnv(name) {
-    let sprite = this.map.state.group.create(this.x * field, this.y * field, name);
-    sprite.scale.setTo(0.25, 0.25);
-    sprite.anchor.setTo(0.5, 1)
+  createEnv(name, frame, anchor_x, anchor_y) {
+    let sprite = this.map.state.group.create(this.x * field, this.y * field, name, frame);
+    sprite.scale.setTo(scale, scale);
+    sprite.anchor.setTo(anchor_x, anchor_y);
+    sprite.env = true;
     this.envSprites.push(sprite);
   }
 

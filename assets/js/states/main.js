@@ -1,4 +1,4 @@
-import {field} from "../globals"
+import {mapSize, field, size, scale} from "../globals"
 
 import GameMap from "../game_map"
 import GameChannel from "../channels/game_channel"
@@ -15,11 +15,10 @@ export default class MainState extends Phaser.State {
     this.group = this.add.group();
 
     this.load.atlas('generic', '/sprites/skins/generic-joystick.png', '/sprites/skins/generic-joystick.json');
-    this.load.image('ball', '/sprites/shinyball.png', field, field);
     this.load.image('background','/sprites/earth_grid.png');
-    this.load.spritesheet('deathknight', '/sprites/deathknight.png', 72, 72, 76);
-    this.load.spritesheet('babe', '/sprites/babe.png', 144, 144, 40);
-    this.load.spritesheet('tree', '/sprites/trees.png', 432, 576, 2);
+    this.load.spritesheet('babe', '/sprites/babe.png', size, size, 40);
+    this.load.spritesheet('tree', '/sprites/trees.png', size * 3, size * 4, 1);
+    this.load.spritesheet('tree2', '/sprites/trees.png', size * 2, size * 4, 6);
   }
 
   create() {
@@ -42,17 +41,21 @@ export default class MainState extends Phaser.State {
     }
 
     // Create background
-    let bg = this.add.tileSprite(0, 0, 1920, 1920, 'background')
-    bg.scale.setTo(0.25, 0.25);
-    // bg.x = -36;
-    // bg.y = -36;
+    let bg = this.add.tileSprite(0, 0, mapSize * 10, mapSize * 10, 'background')
+    bg.scale.setTo(scale, scale);
+    bg.x -= field / 2;
+    bg.y -= field / 2;
     this.world.sendToBack(bg);
-    this.world.setBounds(0, 0, 2142, 2142);
+    this.world.setBounds(-field / 2, -field / 2, mapSize * 10, mapSize * 10);
     this.input.keyboard.addKeyCapture([Phaser.Keyboard.LEFT, Phaser.Keyboard.RIGHT, Phaser.Keyboard.UP, Phaser.Keyboard.DOWN]);
 
-    // Create environement
+    // Create test environement
     let tile = this.map.getTile(8, 8);
-    tile.createEnv('tree');
+    tile.createEnv('tree', 0, 0.5, 1);
+    tile.blocks = true;
+
+    tile = this.map.getTile(4, 5);
+    tile.createEnv('tree2', 2, 0.25, 1);
     tile.blocks = true;
 
 
@@ -84,7 +87,16 @@ export default class MainState extends Phaser.State {
 
     this.player.update(direction, this.time.fps);
 
-    this.group.sort('y', Phaser.Group.SORT_ASCENDING);
+    // this.group.sort('y', Phaser.Group.SORT_ASCENDING);
+    this.group.customSort((a, b) => {
+      if (a.y == b.y) {
+        if (a.env) return 1;
+        if (b.env) return -1;
+        return 0;
+      } else {
+        return a.y > b.y ? 1 : -1;
+      }
+    });
   }
 
   render() {
