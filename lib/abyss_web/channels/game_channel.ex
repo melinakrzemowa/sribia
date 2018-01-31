@@ -15,9 +15,9 @@ defmodule AbyssWeb.GameChannel do
   def handle_info({:joined, user}, socket) do
     push socket, "joined", %{user_id: user.id, name: user.name, speed: user.speed, x: user.x, y: user.y}
     broadcast socket, "user_joined", %{user_id: user.id, name: user.name, speed: user.speed, x: user.x, y: user.y}
-    Enum.each(Game.get_users(), fn user ->
-      push socket, "user_joined", %{user_id: user.id, name: user.name, speed: user.speed, x: user.x, y: user.y}
-    end)
+    # Enum.each(Game.get_users(), fn user ->
+    #   push socket, "user_joined", %{user_id: user.id, name: user.name, speed: user.speed, x: user.x, y: user.y}
+    # end)
     {:noreply, socket}
   end
 

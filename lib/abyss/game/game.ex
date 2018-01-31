@@ -9,23 +9,23 @@ defmodule Abyss.Game do
       |> Accounts.get_user!
       |> check_position
 
-    {:ok, position} = Board.join(user_id, {user.x, user.y})
+    {:ok, position} = Board.add_user({user.x, user.y}, user_id)
     update_user_position(user, position)
   end
 
-  def get_users do
-    Board.get_users()
-    |> Enum.map(fn id ->
-      Accounts.get_user!(id)
-    end)
-  end
+  # def get_users do
+  #   Board.get_users()
+  #   |> Enum.map(fn id ->
+  #     Accounts.get_user!(id)
+  #   end)
+  # end
 
   def move(user_id, direction) do
     user = Accounts.get_user!(user_id)
     move_time = round(100000 / (2 * (user.speed - 1) + 120))
     diff = NaiveDateTime.diff(NaiveDateTime.utc_now(), user.last_move, :millisecond)
     if diff >= move_time * 0.85 do # allow slightly faster movement for smooth movement on frontend
-      case Board.move(user_id, direction) do
+      case Board.move(:user, user_id, direction) do
         {:ok, position} ->
           update_user_position(user, position)
           {:ok, position, move_time}
