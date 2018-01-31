@@ -13,8 +13,11 @@ defmodule AbyssWeb.GameChannel do
   end
 
   def handle_info({:joined, user}, socket) do
-    push socket, "stats", %{name: user.name, speed: user.speed}
-    broadcast socket, "move", %{x: user.x, y: user.y, user_id: socket.assigns[:user_id]}
+    push socket, "joined", %{user_id: user.id, name: user.name, speed: user.speed, x: user.x, y: user.y}
+    broadcast socket, "user_joined", %{user_id: user.id, name: user.name, speed: user.speed, x: user.x, y: user.y}
+    Enum.each(Game.get_users(), fn user ->
+      push socket, "user_joined", %{user_id: user.id, name: user.name, speed: user.speed, x: user.x, y: user.y}
+    end)
     {:noreply, socket}
   end
 
@@ -25,12 +28,22 @@ defmodule AbyssWeb.GameChannel do
     case Game.move(socket.assigns[:user_id], direction) do
       {:ok, {x, y}, move_time} ->
         broadcast socket, "move", %{x: x, y: y, user_id: socket.assigns[:user_id], move_time: move_time}
-        {:reply, {:ok, %{result: :moved}}, socket}
+        {:noreply, socket}
       {:error, {x, y}} ->
         broadcast socket, "move", %{x: x, y: y, user_id: socket.assigns[:user_id]}
-        {:reply, {:ok, %{result: :blocked}}, socket}
-      {:error, :too_early} ->
-        {:reply, {:ok, %{result: :too_early}}, socket}
+        push socket, "blocked", %{x: x, y: y}
+        {:noreply, socket}
+    end
+  end
+
+  intercept ["user_joined"]
+
+  def handle_out("user_joined", msg, socket) do
+    if socket.assigns[:user_id] == msg.user_id do
+      {:noreply, socket}
+    else
+      push socket, "user_joined", msg
+      {:noreply, socket}
     end
   end
 
