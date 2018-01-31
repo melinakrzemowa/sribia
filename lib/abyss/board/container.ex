@@ -10,41 +10,67 @@ defmodule Abyss.Board.Container do
     |> List.keymember?(true, 1)
   end
 
-  def get_position(%Container{details: details}, type, element) do
-    Map.get(details, {type, element})
+  # Check if position is blocked, but ignore {type, object} in this check
+  def blocks?(%Container{fields: fields}, pos, type, object) do
+    Map.get(fields, pos, [])
+    |> List.keydelete({type, object}, 0)
+    |> List.keymember?(true, 1)
+  end
+
+  def get_position(%Container{details: details}, type, object) do
+    Map.get(details, {type, object})
   end
 
   def get_field(%Container{fields: fields}, pos) do
     Map.get(fields, pos, [])
-    |> Enum.map(fn {v, _b} -> v end)
   end
 
   def get_field(%Container{} = container, pos, type) do
     container
     |> get_field(pos)
-    |> Enum.filter(fn {t, _e} -> t == type end)
+    |> Enum.filter(fn {{t, _e}, _b} -> t == type end)
   end
 
-  def put(%Container{fields: fields, details: details} = container, pos, type, element, blocks) do
+  def put(%Container{fields: fields, details: details} = container, pos, type, object, blocks) do
     list = Map.get(fields, pos, [])
-    fields = Map.put(fields, pos, [{{type, element}, blocks} | list])
-    details = Map.put(details, {type, element}, pos)
+    fields = Map.put(fields, pos, [{{type, object}, blocks} | list])
+    details = Map.put(details, {type, object}, pos)
     %Container{container | fields: fields, details: details}
   end
 
-  def move(%Container{fields: fields} = container, pos, type, element) do
-    old_pos = get_position(container, type, element)
-    {_, blocks} = Map.get(fields, old_pos, []) |> List.keyfind({type, element}, 0)
+  def move(%Container{fields: fields} = container, pos, type, object) do
+    old_pos = get_position(container, type, object)
+    {_, blocks} = Map.get(fields, old_pos, []) |> List.keyfind({type, object}, 0)
     container
-    |> delete(old_pos, type, element)
-    |> put(pos, type, element, blocks)
+    |> delete(type, object)
+    |> put(pos, type, object, blocks)
   end
 
-  def delete(%Container{fields: fields, details: details} = container, pos, type, element) do
-    list = Map.get(fields, pos, []) |> List.keydelete({type, element}, 0)
+  def delete(%Container{fields: fields, details: details} = container, type, object) do
+    pos = get_position(container, type, object)
+    list = Map.get(fields, pos, []) |> List.keydelete({type, object}, 0)
     fields = if list == [], do: Map.delete(fields, pos), else: Map.put(fields, pos, list)
-    details = Map.delete(details, {type, element})
+    details = Map.delete(details, {type, object})
     %Container{container | fields: fields, details: details}
   end
+
+  def get_free_spot(container, {x, y}, type, object) do
+    mods = [0, -1, 1]
+    Enum.reduce_while(mods, nil, fn mod_x, _ ->
+      Enum.reduce_while(mods, nil, fn mod_y, _ ->
+        pos = {x + mod_x, y + mod_y}
+        container
+        |> blocks?(pos, type, object)
+        |> continue?(pos)
+      end)
+      |> continue?()
+    end)
+  end
+
+  defp continue?(blocks \\ nil, pos)
+  defp continue?(nil, nil), do: {:cont, nil}
+  defp continue?(nil, pos), do: {:halt, pos}
+  defp continue?(false, pos), do: {:halt, pos}
+  defp continue?(true, _pos), do: {:cont, nil}
 
 end

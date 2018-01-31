@@ -12,6 +12,12 @@ defmodule Abyss.Board.ContainerTest do
     assert Container.blocks?(container, {1, 1})
   end
 
+  test "blocks? ignoring user", %{container: container} do
+    container = Container.put(container, {1, 1}, :user, 2, true)
+    container = Container.put(container, {1, 1}, :object, 2, false)
+    refute Container.blocks?(container, {1, 1}, :user, 2)
+  end
+
   test "doesn't block if fields not blocking", %{container: container} do
     container = Container.put(container, {1, 1}, :object, 2, false)
     container = Container.put(container, {1, 1}, :object, 3, false)
@@ -34,7 +40,7 @@ defmodule Abyss.Board.ContainerTest do
   test "gets field", %{container: container} do
     assert [] == Container.get_field(container, {1, 1})
     container = Container.put(container, {1, 1}, :user, 2, true)
-    assert [{:user, 2}] == Container.get_field(container, {1, 1})
+    assert [{{:user, 2}, true}] == Container.get_field(container, {1, 1})
   end
 
   test "gets field of type", %{container: container} do
@@ -42,9 +48,9 @@ defmodule Abyss.Board.ContainerTest do
     container = Container.put(container, {1, 1}, :user, 3, true)
     container = Container.put(container, {1, 1}, :monster, 2, true)
     container = Container.put(container, {1, 1}, :object, 2, true)
-    assert [{:user, 3}, {:user, 2}] == Container.get_field(container, {1, 1}, :user)
-    assert [{:monster, 2}] == Container.get_field(container, {1, 1}, :monster)
-    assert [{:object, 2}] == Container.get_field(container, {1, 1}, :object)
+    assert [{{:user, 3}, true}, {{:user, 2}, true}] == Container.get_field(container, {1, 1}, :user)
+    assert [{{:monster, 2}, true}] == Container.get_field(container, {1, 1}, :monster)
+    assert [{{:object, 2}, true}] == Container.get_field(container, {1, 1}, :object)
   end
 
   test "puts into container", %{container: container} do
@@ -59,7 +65,7 @@ defmodule Abyss.Board.ContainerTest do
     container =
       container
       |> Container.put({1, 1}, :user, 2, true)
-      |> Container.delete({1, 1}, :user, 2)
+      |> Container.delete(:user, 2)
 
     assert container.details == %{}
     assert container.fields == %{}
@@ -75,4 +81,36 @@ defmodule Abyss.Board.ContainerTest do
     assert container.fields == %{{1, 2} => [{{:user, 2}, true}]}
   end
 
+  test "finds free spot for user", %{container: container} do
+    assert {1, 1} == Container.get_free_spot(container, {1, 1}, :user, 2)
+    container =
+      container
+      |> Container.put({1, 1}, :user, 3, true)
+      |> Container.put({1, 0}, :user, 4, true)
+      |> Container.put({0, 1}, :user, 5, true)
+      |> Container.put({0, 0}, :user, 6, true)
+      |> Container.put({0, 2}, :user, 7, true)
+
+    assert {1, 2} == Container.get_free_spot(container, {1, 1}, :user, 2)
+  end
+
+  test "doesnt find free spot for user", %{container: container} do
+    container =
+      container
+      |> Container.put({0, 0}, :user, 1, true)
+      |> Container.put({0, 1}, :user, 2, true)
+      |> Container.put({0, 2}, :user, 3, true)
+      |> Container.put({1, 0}, :user, 4, true)
+      |> Container.put({1, 1}, :user, 5, true)
+      |> Container.put({1, 2}, :user, 6, true)
+      |> Container.put({2, 0}, :user, 7, true)
+      |> Container.put({2, 1}, :user, 8, true)
+      |> Container.put({2, 2}, :user, 9, true)
+    assert nil == Container.get_free_spot(container, {1, 1}, :user, 10)
+  end
+
+  test "finds free spot in the place where he actually stays", %{container: container} do
+    container = container |> Container.put({1, 1}, :user, 1, true)
+    assert {1, 1} == Container.get_free_spot(container, {1, 1}, :user, 1)
+  end
 end
