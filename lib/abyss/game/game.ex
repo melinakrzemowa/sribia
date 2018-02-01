@@ -14,7 +14,7 @@ defmodule Abyss.Game do
   end
 
   def get_fields({x, y}) do
-    Board.get_fields({x, y}, 5)
+    Board.get_fields({x, y}, 100)
     |> Enum.map(fn {position, field} -> {position, load_field(field)} end)
   end
 
