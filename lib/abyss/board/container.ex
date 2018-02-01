@@ -31,11 +31,12 @@ defmodule Abyss.Board.Container do
     |> Enum.filter(fn {{t, _e}, _b} -> t == type end)
   end
 
-  def put(%Container{fields: fields, details: details} = container, pos, type, object, blocks) do
+  def put(%Container{} = container, pos, type, object, blocks) do
+    %Container{fields: fields, details: details} = delete(container, type, object)
     list = Map.get(fields, pos, [])
     fields = Map.put(fields, pos, [{{type, object}, blocks} | list])
     details = Map.put(details, {type, object}, pos)
-    %Container{container | fields: fields, details: details}
+    %Container{fields: fields, details: details}
   end
 
   def move(%Container{fields: fields} = container, pos, type, object) do
@@ -51,7 +52,7 @@ defmodule Abyss.Board.Container do
     list = Map.get(fields, pos, []) |> List.keydelete({type, object}, 0)
     fields = if list == [], do: Map.delete(fields, pos), else: Map.put(fields, pos, list)
     details = Map.delete(details, {type, object})
-    %Container{container | fields: fields, details: details}
+    %Container{fields: fields, details: details}
   end
 
   def get_free_spot(container, {x, y}, type, object) do

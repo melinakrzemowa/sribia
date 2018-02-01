@@ -13,12 +13,19 @@ defmodule Abyss.Game do
     update_user_position(user, position)
   end
 
-  # def get_users do
-  #   Board.get_users()
-  #   |> Enum.map(fn id ->
-  #     Accounts.get_user!(id)
-  #   end)
-  # end
+  def get_fields({x, y}) do
+    Board.get_fields({x, y}, 5)
+    |> Enum.map(fn {position, field} -> {position, load_field(field)} end)
+  end
+
+  defp load_field(field) do
+    field |> Enum.map(&load_object/1)
+  end
+
+  defp load_object({{:user, id}, _blocks}) do
+    Accounts.get_user!(id)
+  end
+  defp load_object(object), do: object
 
   def move(user_id, direction) do
     user = Accounts.get_user!(user_id)

@@ -1,6 +1,7 @@
 defmodule AbyssWeb.GameChannel do
   use AbyssWeb, :channel
   alias Abyss.Game
+  alias Abyss.Accounts.User
 
   def join("game:lobby", _payload, socket) do
     if authorized?(socket) do
@@ -15,11 +16,18 @@ defmodule AbyssWeb.GameChannel do
   def handle_info({:joined, user}, socket) do
     push socket, "joined", %{user_id: user.id, name: user.name, speed: user.speed, x: user.x, y: user.y}
     broadcast socket, "user_joined", %{user_id: user.id, name: user.name, speed: user.speed, x: user.x, y: user.y}
-    # Enum.each(Game.get_users(), fn user ->
-    #   push socket, "user_joined", %{user_id: user.id, name: user.name, speed: user.speed, x: user.x, y: user.y}
-    # end)
+    Enum.each(Game.get_fields({user.x, user.y}), fn {position, list} ->
+      Enum.each(list, fn object ->
+        push_object(socket, position, object)
+      end)
+    end)
     {:noreply, socket}
   end
+
+  defp push_object(socket, _position, %User{} = user) do
+    push socket, "user_joined", %{user_id: user.id, name: user.name, speed: user.speed, x: user.x, y: user.y}
+  end
+  defp push_object(_socket, _pos, _object), do: :ok
 
   # It is also common to receive messages from the client and
   # broadcast to everyone in the current topic (game:lobby).

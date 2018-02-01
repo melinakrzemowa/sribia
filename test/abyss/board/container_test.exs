@@ -61,6 +61,15 @@ defmodule Abyss.Board.ContainerTest do
     }
   end
 
+  test "puts into container twice", %{container: container} do
+    container = Container.put(container, {1, 1}, :user, 2, true)
+    container = Container.put(container, {1, 1}, :user, 2, true)
+    assert container == %Container{
+      details: %{{:user, 2} => {1, 1}},
+      fields: %{{1, 1} => [{{:user, 2}, true}]}
+    }
+  end
+
   test "deletes from container", %{container: container} do
     container =
       container
