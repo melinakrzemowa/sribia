@@ -1,6 +1,5 @@
 import MainState from "./states/main"
 import { field } from "./globals"
-
 export default class Game extends Phaser.Game {
 
   constructor() {

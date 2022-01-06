@@ -4,6 +4,7 @@ import GameMap from "../game_map"
 import GameChannel from "../channels/game_channel"
 import Player from "../player"
 import UsersContainer from "../users_container"
+import MobileDetect from "mobile-detect"
 
 export default class MainState extends Phaser.State {
 

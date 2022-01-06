@@ -5,6 +5,15 @@
 # is restricted to this project.
 use Mix.Config
 
+config :esbuild,
+  version: "0.14.0",
+  default: [
+    args:
+      ~w(js/app.js --bundle --target=es2016 --outdir=../priv/static/js),
+    cd: Path.expand("../assets", __DIR__),
+    env: %{"NODE_PATH" => Path.expand("../deps", __DIR__)}
+  ]
+
 # General application configuration
 config :abyss,
   ecto_repos: [Abyss.Repo]
