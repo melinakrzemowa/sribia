@@ -8,7 +8,6 @@ database_url =
     """
 
 config :abyss, Abyss.Repo,
-  # ssl: true,
   url: database_url,
   pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10")
 
@@ -29,8 +28,5 @@ host =
 config :abyss, AbyssWeb.Endpoint,
   server: true,
   url: [host: host],
-  http: [
-    port: String.to_integer(System.get_env("PORT") || "4000"),
-    transport_options: [socket_opts: [:inet6]]
-  ],
+  http: [:inet6, port: String.to_integer(System.get_env("PORT") || "4000")],
   secret_key_base: secret_key_base
