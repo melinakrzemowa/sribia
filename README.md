@@ -1,5 +1,7 @@
 # Abyss
 
+[![Build Status](https://github.com/kelostrada/sribia/workflows/CI/badge.svg?branch=master)](https://github.com/kelostrada/sribia/actions?query=workflow%3A%22CI%22)
+
 To start your Phoenix server:
 
   * Install dependencies with `mix deps.get`
