@@ -1,7 +1,7 @@
 defmodule AbyssWeb.Plugs.Auth do
   # import Plug.Conn
   import Phoenix.Controller, only: [redirect: 2]
-  import Plug.Conn, only: [get_session: 2, assign: 3]
+  import Plug.Conn, only: [get_session: 2, assign: 3, halt: 1]
   alias AbyssWeb.Router.Helpers, as: Routes
 
 
@@ -16,7 +16,9 @@ defmodule AbyssWeb.Plugs.Auth do
       |> assign(:user_id, user_id)
       |> assign(:user, Abyss.Accounts.get_user!(user_id))
     else
-      redirect(conn, to: Routes.page_path(conn, :auth))
+      conn
+      |> redirect(to: Routes.page_path(conn, :auth))
+      |> halt()
     end
   end
 

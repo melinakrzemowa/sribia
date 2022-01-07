@@ -1,11 +1,14 @@
 defmodule AbyssWeb.ChatChannelTest do
   use AbyssWeb.ChannelCase
 
+  alias Abyss.Accounts
   alias AbyssWeb.ChatChannel
 
   setup do
+    {:ok, user} = Accounts.create_user(%{name: "some name"})
+
     {:ok, _, socket} =
-      socket("user_id", %{some: :assign})
+      socket("user_id", %{user_id: user.id, user: user})
       |> subscribe_and_join(ChatChannel, "chat:lobby")
 
     {:ok, socket: socket}
@@ -17,8 +20,8 @@ defmodule AbyssWeb.ChatChannelTest do
   end
 
   test "shout broadcasts to chat:lobby", %{socket: socket} do
-    push socket, "shout", %{"hello" => "all"}
-    assert_broadcast "shout", %{"hello" => "all"}
+    push socket, "shout", %{"body" => "hello"}
+    assert_broadcast "shout", %{body: "hello", user: "some name"}
   end
 
   test "broadcasts are pushed to the client", %{socket: socket} do

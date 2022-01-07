@@ -1,28 +1,24 @@
 defmodule AbyssWeb.GameChannelTest do
   use AbyssWeb.ChannelCase
 
+  alias Abyss.Accounts
   alias AbyssWeb.GameChannel
 
   setup do
+    {:ok, user} = Accounts.create_user(%{name: "some name", speed: 1000})
+    user_id = user.id
+
     {:ok, _, socket} =
-      socket("user_id", %{some: :assign})
+      socket("user_id", %{user_id: user.id})
       |> subscribe_and_join(GameChannel, "game:lobby")
 
-    {:ok, socket: socket}
+    assert_broadcast "user_joined", %{user_id: ^user_id, x: 1, y: 1}
+
+    {:ok, socket: socket, user: user}
   end
 
-  test "ping replies with status ok", %{socket: socket} do
-    ref = push socket, "ping", %{"hello" => "there"}
-    assert_reply ref, :ok, %{"hello" => "there"}
-  end
-
-  test "shout broadcasts to game:lobby", %{socket: socket} do
-    push socket, "shout", %{"hello" => "all"}
-    assert_broadcast "shout", %{"hello" => "all"}
-  end
-
-  test "broadcasts are pushed to the client", %{socket: socket} do
-    broadcast_from! socket, "broadcast", %{"some" => "data"}
-    assert_push "broadcast", %{"some" => "data"}
+  test "moves on board", %{socket: socket, user: %{id: user_id}} do
+    push socket, "move", %{"direction" => "s"}
+    assert_broadcast "move", %{user_id: ^user_id, x: 1, y: 2}
   end
 end
