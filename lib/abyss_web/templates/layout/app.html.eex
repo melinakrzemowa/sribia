@@ -18,7 +18,11 @@
     <%= render @view_module, @view_template, assigns %>
 
     <div id="messages"></div>
-    <input id="chat-input" type="text"></input>
+    <input id="chat-input" type="text" />
+
+    <hr/>
+
+    <small>Version: <%= System.get_env("VERSION") %></small>
 
     <script>window.token = "<%= assigns[:token] %>";</script>
     <script>window.user_id = <%= assigns[:user_id] %>;</script>

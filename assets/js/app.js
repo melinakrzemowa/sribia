@@ -3,4 +3,7 @@ import "./channels/chat_channel"
 
 import Game from "./game"
 
-let game = new Game();
+
+if (document.getElementById("game")) {
+    window.game = new Game();
+}
