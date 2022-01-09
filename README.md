@@ -1,6 +1,7 @@
 # Abyss
 
-[![Build Status](https://github.com/kelostrada/sribia/workflows/CI/badge.svg?branch=master)](https://github.com/kelostrada/sribia/actions?query=workflow%3A%22CI%22)
+[![Build Status](https://github.com/melinakrzemowa/sribia/workflows/CI/badge.svg?branch=master)](https://github.com/melinakrzemowa/sribia/actions?query=workflow%3A%22CI%22)
+[![Deploy Status](https://github.com/melinakrzemowa/sribia/workflows/Deploy/badge.svg?branch=master)](https://github.com/melinakrzemowa/sribia/actions?query=workflow%3A%22Deploy%22)
 
 To start your Phoenix server:
 
