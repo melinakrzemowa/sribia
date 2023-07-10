@@ -25,7 +25,7 @@ config :abyss, AbyssWeb.Endpoint,
   url: [host: "localhost"],
   secret_key_base: "b/T/fB/d30EtU/0pOSVYLkJyVCW3QJcz3oVuKBMmJ53pdONFJZ3TojQzCOaR5ge3",
   render_errors: [view: AbyssWeb.ErrorView, accepts: ~w(html json)],
-  pubsub: [name: Abyss.PubSub, adapter: Phoenix.PubSub.PG2]
+  pubsub_server: Abyss.PubSub
 
 # Configures Elixir's Logger
 config :logger, :console,
