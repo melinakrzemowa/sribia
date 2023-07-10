@@ -3,7 +3,6 @@ defmodule Abyss.Accounts.User do
   import Ecto.Changeset
   alias Abyss.Accounts.User
 
-
   schema "users" do
     field :name, :string
     field :x, :integer

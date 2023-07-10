@@ -26,13 +26,13 @@ defmodule AbyssWeb.ConnCase do
     end
   end
 
-
   setup tags do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(Abyss.Repo)
+
     unless tags[:async] do
       Ecto.Adapters.SQL.Sandbox.mode(Abyss.Repo, {:shared, self()})
     end
+
     {:ok, conn: Phoenix.ConnTest.build_conn() |> Plug.Test.init_test_session(%{})}
   end
-
 end

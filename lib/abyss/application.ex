@@ -14,7 +14,7 @@ defmodule Abyss.Application do
       supervisor(AbyssWeb.Endpoint, []),
       # Start your own worker by calling: Abyss.Worker.start_link(arg1, arg2, arg3)
       # worker(Abyss.Worker, [arg1, arg2, arg3]),
-      worker(Abyss.Board, []),
+      worker(Abyss.Board, [])
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

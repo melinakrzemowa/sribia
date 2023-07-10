@@ -13,7 +13,7 @@ defmodule Abyss.Board do
   # CLIENT
 
   def start_link() do
-    GenServer.start_link(__MODULE__, Container.new, name: __MODULE__)
+    GenServer.start_link(__MODULE__, Container.new(), name: __MODULE__)
   end
 
   def init(state) do
@@ -56,6 +56,7 @@ defmodule Abyss.Board do
         nil -> {1, 1}
         position -> position
       end
+
     container = Container.put(container, position, :user, user_id, true)
     {:reply, {:ok, position}, container}
   end
@@ -90,7 +91,7 @@ defmodule Abyss.Board do
           Map.put(acc, {x + i, y + j}, field)
         end)
       end)
+
     {:reply, fields, container}
   end
-
 end

@@ -21,14 +21,14 @@ defmodule AbyssWeb.UserControllerTest do
 
   describe "index" do
     test "lists all users", %{conn: conn} do
-      conn = get conn, user_path(conn, :index)
+      conn = get(conn, user_path(conn, :index))
       assert html_response(conn, 200) =~ "Listing Users"
     end
   end
 
   describe "new user" do
     test "renders form", %{conn: conn} do
-      conn = get conn, user_path(conn, :new)
+      conn = get(conn, user_path(conn, :new))
       assert html_response(conn, 200) =~ "New User"
     end
   end
@@ -40,7 +40,7 @@ defmodule AbyssWeb.UserControllerTest do
       assert %{id: id} = redirected_params(conn)
       assert redirected_to(conn) == user_path(conn, :show, id)
 
-      conn = get conn, user_path(conn, :show, id)
+      conn = get(conn, user_path(conn, :show, id))
       assert html_response(conn, 200) =~ "Show User"
     end
 
@@ -52,7 +52,7 @@ defmodule AbyssWeb.UserControllerTest do
 
   describe "edit user" do
     test "renders form for editing chosen user", %{conn: conn, user: user} do
-      conn = get conn, user_path(conn, :edit, user)
+      conn = get(conn, user_path(conn, :edit, user))
       assert html_response(conn, 200) =~ "Edit User"
     end
   end
@@ -62,7 +62,7 @@ defmodule AbyssWeb.UserControllerTest do
       conn2 = put conn, user_path(conn, :update, user), user: @update_attrs
       assert redirected_to(conn2) == user_path(conn2, :show, user)
 
-      conn3 = get conn, user_path(conn, :show, user)
+      conn3 = get(conn, user_path(conn, :show, user))
       assert html_response(conn3, 200) =~ "some updated name"
     end
 
@@ -74,10 +74,11 @@ defmodule AbyssWeb.UserControllerTest do
 
   describe "delete user" do
     test "deletes chosen user", %{conn: conn, user: user} do
-      conn = delete conn, user_path(conn, :delete, user)
+      conn = delete(conn, user_path(conn, :delete, user))
       assert redirected_to(conn) == user_path(conn, :index)
+
       assert_error_sent 404, fn ->
-        get conn, user_path(conn, :show, user)
+        get(conn, user_path(conn, :show, user))
       end
     end
   end

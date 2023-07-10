@@ -4,7 +4,6 @@ defmodule AbyssWeb.Plugs.Auth do
   import Plug.Conn, only: [get_session: 2, assign: 3, halt: 1]
   alias AbyssWeb.Router.Helpers, as: Routes
 
-
   def init(_), do: []
 
   def call(conn, _) do
@@ -21,5 +20,4 @@ defmodule AbyssWeb.Plugs.Auth do
       |> halt()
     end
   end
-
 end

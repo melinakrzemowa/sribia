@@ -4,7 +4,7 @@ defmodule Abyss.Board.BoardTest do
 
   setup do
     container =
-      Container.new
+      Container.new()
       |> Container.put({1, 1}, :user, 1, true)
       |> Container.put({1, 2}, :user, 2, true)
       |> Container.put({1, 3}, :user, 3, true)
@@ -51,18 +51,17 @@ defmodule Abyss.Board.BoardTest do
 
   test "gets fields", %{state: state} do
     {:reply, fields, _state} = Board.handle_call({:get_fields, {2, 2}, 1}, self(), state)
+
     assert %{
-      {1, 1} => [{{:user, 1}, true}],
-      {1, 2} => [{{:user, 2}, true}],
-      {1, 3} => [{{:user, 3}, true}],
-      {2, 1} => [{{:object, 1}, false}],
-      {2, 2} => [{{:object, 2}, false}],
-      {2, 3} => [{{:object, 3}, false}],
-      {3, 1} => [{{:monster, 1}, true}],
-      {3, 2} => [{{:monster, 2}, true}],
-      {3, 3} => [{{:monster, 3}, true}]
-    } == fields
+             {1, 1} => [{{:user, 1}, true}],
+             {1, 2} => [{{:user, 2}, true}],
+             {1, 3} => [{{:user, 3}, true}],
+             {2, 1} => [{{:object, 1}, false}],
+             {2, 2} => [{{:object, 2}, false}],
+             {2, 3} => [{{:object, 3}, false}],
+             {3, 1} => [{{:monster, 1}, true}],
+             {3, 2} => [{{:monster, 2}, true}],
+             {3, 3} => [{{:monster, 3}, true}]
+           } == fields
   end
-
-
 end

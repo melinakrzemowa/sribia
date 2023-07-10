@@ -18,7 +18,7 @@ defmodule AbyssWeb.GameChannelTest do
   end
 
   test "moves on board", %{socket: socket, user: %{id: user_id}} do
-    push socket, "move", %{"direction" => "s"}
+    push(socket, "move", %{"direction" => "s"})
     assert_broadcast "move", %{user_id: ^user_id, x: 1, y: 2}
   end
 end

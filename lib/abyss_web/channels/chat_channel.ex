@@ -18,7 +18,7 @@ defmodule AbyssWeb.ChatChannel do
   # It is also common to receive messages from the client and
   # broadcast to everyone in the current topic (chat:lobby).
   def handle_in("shout", %{"body" => body}, socket) do
-    broadcast socket, "shout", %{body: body, user: socket.assigns[:user].name}
+    broadcast(socket, "shout", %{body: body, user: socket.assigns[:user].name})
     {:noreply, socket}
   end
 

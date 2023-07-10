@@ -3,7 +3,7 @@ defmodule Abyss.Board.ContainerTest do
   alias Abyss.Board.Container
 
   setup do
-    %{container: Container.new}
+    %{container: Container.new()}
   end
 
   test "blocks?", %{container: container} do
@@ -55,19 +55,21 @@ defmodule Abyss.Board.ContainerTest do
 
   test "puts into container", %{container: container} do
     container = Container.put(container, {1, 1}, :user, 2, true)
+
     assert container == %Container{
-      details: %{{:user, 2} => {1, 1}},
-      fields: %{{1, 1} => [{{:user, 2}, true}]}
-    }
+             details: %{{:user, 2} => {1, 1}},
+             fields: %{{1, 1} => [{{:user, 2}, true}]}
+           }
   end
 
   test "puts into container twice", %{container: container} do
     container = Container.put(container, {1, 1}, :user, 2, true)
     container = Container.put(container, {1, 1}, :user, 2, true)
+
     assert container == %Container{
-      details: %{{:user, 2} => {1, 1}},
-      fields: %{{1, 1} => [{{:user, 2}, true}]}
-    }
+             details: %{{:user, 2} => {1, 1}},
+             fields: %{{1, 1} => [{{:user, 2}, true}]}
+           }
   end
 
   test "deletes from container", %{container: container} do
@@ -92,6 +94,7 @@ defmodule Abyss.Board.ContainerTest do
 
   test "finds free spot for user", %{container: container} do
     assert {1, 1} == Container.get_free_spot(container, {1, 1}, :user, 2)
+
     container =
       container
       |> Container.put({1, 1}, :user, 3, true)
@@ -115,6 +118,7 @@ defmodule Abyss.Board.ContainerTest do
       |> Container.put({2, 0}, :user, 7, true)
       |> Container.put({2, 1}, :user, 8, true)
       |> Container.put({2, 2}, :user, 9, true)
+
     assert nil == Container.get_free_spot(container, {1, 1}, :user, 10)
   end
 

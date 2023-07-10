@@ -1,7 +1,7 @@
 defmodule Abyss.Board.Container do
   alias Abyss.Board.Container
 
-  defstruct [fields: %{}, details: %{}]
+  defstruct fields: %{}, details: %{}
 
   def new(), do: %Container{}
 
@@ -42,6 +42,7 @@ defmodule Abyss.Board.Container do
   def move(%Container{fields: fields} = container, pos, type, object) do
     old_pos = get_position(container, type, object)
     {_, blocks} = Map.get(fields, old_pos, []) |> List.keyfind({type, object}, 0)
+
     container
     |> delete(type, object)
     |> put(pos, type, object, blocks)
@@ -57,9 +58,11 @@ defmodule Abyss.Board.Container do
 
   def get_free_spot(container, {x, y}, type, object) do
     mods = [0, -1, 1]
+
     Enum.reduce_while(mods, nil, fn mod_x, _ ->
       Enum.reduce_while(mods, nil, fn mod_y, _ ->
         pos = {x + mod_x, y + mod_y}
+
         container
         |> blocks?(pos, type, object)
         |> continue?(pos)
@@ -73,5 +76,4 @@ defmodule Abyss.Board.Container do
   defp continue?(nil, pos), do: {:halt, pos}
   defp continue?(false, pos), do: {:halt, pos}
   defp continue?(true, _pos), do: {:cont, nil}
-
 end

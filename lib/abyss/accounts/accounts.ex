@@ -37,7 +37,6 @@ defmodule Abyss.Accounts do
   """
   def get_user!(id), do: Repo.get!(User, id)
 
-
   @doc """
   Gets or creates user and puts it into session.
   """
@@ -47,6 +46,7 @@ defmodule Abyss.Accounts do
         nil -> create_user(%{name: name})
         user -> {:ok, user}
       end
+
     Plug.Conn.put_session(conn, :user_id, user.id)
   end
 

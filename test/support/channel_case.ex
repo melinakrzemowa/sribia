@@ -25,13 +25,13 @@ defmodule AbyssWeb.ChannelCase do
     end
   end
 
-
   setup tags do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(Abyss.Repo)
+
     unless tags[:async] do
       Ecto.Adapters.SQL.Sandbox.mode(Abyss.Repo, {:shared, self()})
     end
+
     :ok
   end
-
 end
