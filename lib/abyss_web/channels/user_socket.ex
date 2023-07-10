@@ -5,10 +5,6 @@ defmodule AbyssWeb.UserSocket do
   channel "chat:*", AbyssWeb.ChatChannel
   channel "game:lobby", AbyssWeb.GameChannel
 
-  ## Transports
-  transport :websocket, Phoenix.Transports.WebSocket, timeout: 45_000
-  # transport :longpoll, Phoenix.Transports.LongPoll
-
   # Socket params are passed from the client and can
   # be used to verify and authenticate a user. After
   # verification, you can put default assigns into
@@ -22,13 +18,15 @@ defmodule AbyssWeb.UserSocket do
   # performing token verification on connect.
   def connect(%{"token" => token}, socket) do
     # max_age: 1209600 is equivalent to two weeks in seconds
-    case Phoenix.Token.verify(socket, "user token", token, max_age: 1209600) do
+    case Phoenix.Token.verify(socket, "user token", token, max_age: 1_209_600) do
       {:ok, user_id} ->
         socket =
           socket
           |> assign(:user_id, user_id)
           |> assign(:user, Abyss.Accounts.get_user!(user_id))
+
         {:ok, socket}
+
       {:error, _reason} ->
         :error
     end

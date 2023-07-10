@@ -32,7 +32,7 @@ defmodule AbyssWeb.Router do
 
   scope "/admin", AbyssWeb do
     pipe_through [:browser, :auth]
-    
+
     resources "/users", UserController
   end
 
