@@ -9,7 +9,7 @@ defmodule Abyss.Application do
       Abyss.Repo,
       {Phoenix.PubSub, name: Abyss.PubSub},
       AbyssWeb.Endpoint,
-      Abyss.Board,
+      Abyss.Board
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
