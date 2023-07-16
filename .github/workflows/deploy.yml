@@ -40,6 +40,7 @@ jobs:
         push: true
         tags: |
           kelu/sribia:latest
+          kelu/sribia:${{ steps.previoustag.outputs.tag }}
           kelu/sribia:${{ steps.previoustag.outputs.tag }}-${{ steps.get_hash.outputs.HASH }}
 
     - name: Copy docker-compose.yml
