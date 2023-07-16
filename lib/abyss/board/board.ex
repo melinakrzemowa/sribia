@@ -12,7 +12,7 @@ defmodule Abyss.Board do
 
   # CLIENT
 
-  def start_link() do
+  def start_link(_args \\ []) do
     GenServer.start_link(__MODULE__, Container.new(), name: __MODULE__)
   end
 

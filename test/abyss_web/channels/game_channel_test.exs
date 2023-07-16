@@ -3,13 +3,15 @@ defmodule AbyssWeb.GameChannelTest do
 
   alias Abyss.Accounts
   alias AbyssWeb.GameChannel
+  alias AbyssWeb.UserSocket
 
   setup do
     {:ok, user} = Accounts.create_user(%{name: "some name", speed: 1000})
     user_id = user.id
 
     {:ok, _, socket} =
-      socket("user_id", %{user_id: user.id})
+      UserSocket
+      |> socket("user_id", %{user_id: user.id})
       |> subscribe_and_join(GameChannel, "game:lobby")
 
     assert_broadcast "user_joined", %{user_id: ^user_id, x: 1, y: 1}

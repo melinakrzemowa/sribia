@@ -4,19 +4,12 @@ defmodule Abyss.Application do
   # See https://hexdocs.pm/elixir/Application.html
   # for more information on OTP Applications
   def start(_type, _args) do
-    import Supervisor.Spec
-
     # Define workers and child supervisors to be supervised
     children = [
-      # Start the Ecto repository
-      supervisor(Abyss.Repo, []),
-      # Start the PubSub system
+      Abyss.Repo,
       {Phoenix.PubSub, name: Abyss.PubSub},
-      # Start the endpoint when the application starts
-      supervisor(AbyssWeb.Endpoint, []),
-      # Start your own worker by calling: Abyss.Worker.start_link(arg1, arg2, arg3)
-      # worker(Abyss.Worker, [arg1, arg2, arg3]),
-      worker(Abyss.Board, [])
+      AbyssWeb.Endpoint,
+      Abyss.Board,
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

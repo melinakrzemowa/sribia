@@ -3,12 +3,14 @@ defmodule AbyssWeb.ChatChannelTest do
 
   alias Abyss.Accounts
   alias AbyssWeb.ChatChannel
+  alias AbyssWeb.UserSocket
 
   setup do
     {:ok, user} = Accounts.create_user(%{name: "some name"})
 
     {:ok, _, socket} =
-      socket("user_id", %{user_id: user.id, user: user})
+      UserSocket
+      |> socket("user_id", %{user_id: user.id, user: user})
       |> subscribe_and_join(ChatChannel, "chat:lobby")
 
     {:ok, socket: socket}
