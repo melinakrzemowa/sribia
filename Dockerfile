@@ -1,4 +1,4 @@
-FROM elixir:1.14.5-otp-25-alpine AS build
+FROM hexpm/elixir:1.14.5-erlang-24.3.4.13-alpine-3.16.6 AS build
 
 # install build dependencies
 RUN apk add --no-cache build-base npm git python3
@@ -34,7 +34,7 @@ COPY lib lib
 RUN mix do compile, release
 
 # prepare release image
-FROM alpine:3.17 AS app
+FROM alpine:3.16.6 AS app
 RUN apk add --no-cache openssl ncurses-libs
 
 WORKDIR /app
