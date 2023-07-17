@@ -1,7 +1,14 @@
-FROM hexpm/elixir:1.14.5-erlang-24.3.4.13-alpine-3.16.6 AS build
+FROM hexpm/elixir:1.14.5-erlang-24.3.4.13-debian-bookworm-20230612-slim AS build
 
 # install build dependencies
-RUN apk add --no-cache build-base npm git python3
+RUN apt-get update && \
+  apt-get install -y locales && \
+  echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen && \
+  locale-gen
+
+ENV LC_ALL="en_US.UTF-8"
+
+RUN apt-get install -y npm git python3
 
 # prepare build dir
 WORKDIR /app
@@ -34,16 +41,21 @@ COPY lib lib
 RUN mix do compile, release
 
 # prepare release image
-FROM alpine:3.16.6 AS app
-RUN apk add --no-cache openssl ncurses-libs
+FROM debian:bookworm-20230612-slim AS app
+
+# install build dependencies
+RUN apt-get update && \
+  apt-get install -y locales && \
+  echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen && \
+  locale-gen
+
+ENV LC_ALL="en_US.UTF-8"
+
+RUN apt-get install -y openssl
 
 WORKDIR /app
 
-RUN chown nobody:nobody /app
-
-USER nobody:nobody
-
-COPY --from=build --chown=nobody:nobody /app/_build/prod/rel/abyss ./
+COPY --from=build /app/_build/prod/rel/abyss ./
 
 ENV HOME=/app
 
