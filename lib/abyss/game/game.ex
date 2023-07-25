@@ -1,7 +1,7 @@
 defmodule Abyss.Game do
   alias Abyss.{Accounts, Board}
 
-  @starting_position {1, 1}
+  @starting_position {32097, 32219}
 
   def join(user_id) do
     user =

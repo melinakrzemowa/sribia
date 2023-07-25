@@ -33,7 +33,8 @@ defmodule Abyss.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:jason, "~> 1.0"},
+      {:jason, "~> 1.5.0-alpha.2"},
+      {:jason_native, "~> 0.1.0"},
       {:phoenix, "~> 1.5.0"},
       {:phoenix_pubsub, "~> 2.0"},
       {:ecto_sql, "~> 3.6"},
@@ -44,7 +45,9 @@ defmodule Abyss.Mixfile do
       {:gettext, "~> 0.11"},
       {:plug_cowboy, "~> 2.1"},
       {:esbuild, "~> 0.2", runtime: Mix.env() == :dev},
-      {:telemetry, "~> 0.4"}
+      {:telemetry, "~> 0.4"},
+      {:cachex, "~> 3.6"},
+      {:unzip, "~> 0.8.0"}
     ]
   end
 

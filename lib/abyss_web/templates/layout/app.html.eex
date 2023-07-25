@@ -7,7 +7,7 @@
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <title>Hello Abyss!</title>
+    <title>Hello Sribia!</title>
   </head>
 
   <body>
@@ -16,19 +16,5 @@
     <p class="alert alert-danger" role="alert"><%= get_flash(@conn, :error) %></p>
 
     <%= @inner_content %>
-
-    <div id="messages"></div>
-    <input id="chat-input" type="text" />
-
-    <hr/>
-
-    <small>Version: <%= System.get_env("VERSION") %></small>
-
-    <script>window.token = "<%= assigns[:token] %>";</script>
-    <script>window.user_id = <%= assigns[:user_id] %>;</script>
-    <script src="https://cdn.jsdelivr.net/npm/phaser-ce@2.19.2"></script>
-    <script src="<%= Routes.static_path(@conn, "/vendor/phaser-virtual-joystick.min.js") %>"></script>
-
-    <script src="<%= Routes.static_path(@conn, "/js/app.js") %>"></script>
   </body>
 </html>

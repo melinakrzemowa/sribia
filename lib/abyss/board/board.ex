@@ -10,6 +10,8 @@ defmodule Abyss.Board do
   use GenServer
   alias Abyss.Board.{Container, Directions, Moves}
 
+  @starting_position {32097, 32219}
+
   # CLIENT
 
   def start_link(_args \\ []) do
@@ -53,7 +55,7 @@ defmodule Abyss.Board do
   def handle_call({:add_user, position, user_id}, _from, %Container{} = container) do
     position =
       case Container.get_free_spot(container, position, :user, user_id) do
-        nil -> {1, 1}
+        nil -> @starting_position
         position -> position
       end
 

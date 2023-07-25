@@ -6,6 +6,7 @@ defmodule Abyss.Application do
   def start(_type, _args) do
     # Define workers and child supervisors to be supervised
     children = [
+      {Cachex, name: :map},
       Abyss.Repo,
       {Phoenix.PubSub, name: Abyss.PubSub},
       AbyssWeb.Endpoint,
@@ -15,7 +16,11 @@ defmodule Abyss.Application do
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: Abyss.Supervisor]
-    Supervisor.start_link(children, opts)
+    supervisor = Supervisor.start_link(children, opts)
+
+    Abyss.Game.MapLoader.load_cache()
+
+    supervisor
   end
 
   # Tell Phoenix to update the endpoint configuration

@@ -39,23 +39,25 @@ export default class MainState extends Phaser.State {
     if (!md.mobile()) {
       this.stick.alpha = 0;
       this.stick.enabled = false;
+    } else {
+      this.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
     }
 
     // Create background
-    let bg = this.add.tileSprite(0, 0, mapSize * 10, mapSize * 10, 'background')
+    let bg = this.add.tileSprite(0, 0, mapSize * 100, mapSize * 100, 'background')
     bg.scale.setTo(scale, scale);
     bg.x -= field / 2;
     bg.y -= field / 2;
     this.world.sendToBack(bg);
-    this.world.setBounds(-field / 2, -field / 2, mapSize * 10, mapSize * 10);
+    this.world.setBounds(-field / 2, -field / 2, mapSize * 100, mapSize * 100);
     this.input.keyboard.addKeyCapture([Phaser.Keyboard.LEFT, Phaser.Keyboard.RIGHT, Phaser.Keyboard.UP, Phaser.Keyboard.DOWN]);
 
     // Create test environement
-    let tile = this.map.getTile(8, 8);
+    let tile = this.map.getTile(32091, 32200);
     tile.createEnv('tree', 0, 0.5, 0.875);
     tile.blocks = true;
 
-    tile = this.map.getTile(4, 5);
+    tile = this.map.getTile(32086,32205);
     tile.createEnv('tree2', 2, 0.25, 0.875);
     tile.blocks = true;
 
@@ -106,7 +108,7 @@ export default class MainState extends Phaser.State {
     this.game.debug.text(`x: ${this.player.position.x} y: ${this.player.position.y}`, 2, 32, "#00ff00");
     if (this.player.joined) {
       // this.debug.spriteInfo(player.sprite, 32, 180);
-      this.game.debug.spriteCoords(this.player.sprite, 6, 500);
+      // this.game.debug.spriteCoords(this.player.sprite, 6, 500);
     }
   }
 
