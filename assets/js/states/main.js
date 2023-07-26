@@ -86,6 +86,17 @@ export default class MainState extends Phaser.State {
     if (!this.stick.isDown && this.input.keyboard.isDown(Phaser.Keyboard.DOWN)) direction.y++;
 
     this.player.update(direction, this.time.fps);
+
+    // this.group.sort('y', Phaser.Group.SORT_ASCENDING);
+    this.group.customSort((a, b) => {
+      if (a.y == b.y) {
+        if (a.env) return 1;
+        if (b.env) return -1;
+        return 0;
+      } else {
+        return a.y > b.y ? 1 : -1;
+      }
+    });
   }
 
   render() {
