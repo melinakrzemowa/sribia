@@ -18,10 +18,7 @@ export default class MainState extends Phaser.State {
 
     this.load.atlas('generic', '/sprites/skins/generic-joystick.png', '/sprites/skins/generic-joystick.json');
     this.load.spritesheet('babe', '/sprites/babe.png', 144, 144, 40);
-
-    Object.keys(items).forEach(key => {
-      this.load.spritesheet('item_' + key, '/sprites/items/item_' + key + '.png', size, size, items[key].width * items[key].height)
-    });
+    this.load.atlasJSONHash('items', '/sprites/items.png', '/sprites/items.json')
   }
 
   create() {
@@ -61,7 +58,9 @@ export default class MainState extends Phaser.State {
 
     this.channel.on("map_data", mapData => {
       mapData.map.forEach(mapTile => {
-        let sprite = this.add.sprite(mapTile.x * field, mapTile.y * field, 'item_' + mapTile.id)
+        if (!mapTile.id) return;
+
+        let sprite = this.add.tileSprite(mapTile.x * field, mapTile.y * field, 32, 32, 'items', 'item_' + mapTile.id + '.png')
         sprite.scale.setTo(scale, scale);
         sprite.x -= field / 2;
         sprite.y -= field / 2;
