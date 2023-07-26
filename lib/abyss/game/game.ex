@@ -49,7 +49,7 @@ defmodule Abyss.Game do
   end
 
   def get_map_data(x, y, z) do
-    for i <- (x-@map_range)..(x+@map_range), j <- (y-@map_range)..(y+@map_range) do
+    for i <- (x - @map_range)..(x + @map_range), j <- (y - @map_range)..(y + @map_range) do
       {:ok, data} = Cachex.get(:map, {i, j, z})
       Map.merge(data, %{x: i, y: j, z: z})
     end
