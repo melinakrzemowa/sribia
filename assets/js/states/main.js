@@ -5,6 +5,7 @@ import GameChannel from "../channels/game_channel"
 import Player from "../player"
 import UsersContainer from "../users_container"
 import MobileDetect from "mobile-detect"
+import items from "../items.json" assert {type: 'json'}
 
 export default class MainState extends Phaser.State {
 
@@ -16,10 +17,11 @@ export default class MainState extends Phaser.State {
     this.group = this.add.group();
 
     this.load.atlas('generic', '/sprites/skins/generic-joystick.png', '/sprites/skins/generic-joystick.json');
-    this.load.image('background','/sprites/earth_grid.png');
-    this.load.spritesheet('babe', '/sprites/babe.png', size, size, 40);
-    this.load.spritesheet('tree', '/sprites/trees.png', size * 3, size * 4, 1);
-    this.load.spritesheet('tree2', '/sprites/trees.png', size * 2, size * 4, 6);
+    this.load.spritesheet('babe', '/sprites/babe.png', 144, 144, 40);
+
+    Object.keys(items).forEach(key => {
+      this.load.spritesheet('item_' + key, '/sprites/items/item_' + key + '.png', size, size, items[key].width * items[key].height)
+    });
   }
 
   create() {
@@ -43,24 +45,8 @@ export default class MainState extends Phaser.State {
       this.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
     }
 
-    // Create background
-    let bg = this.add.tileSprite(0, 0, mapSize * 100, mapSize * 100, 'background')
-    bg.scale.setTo(scale, scale);
-    bg.x -= field / 2;
-    bg.y -= field / 2;
-    this.world.sendToBack(bg);
     this.world.setBounds(-field / 2, -field / 2, mapSize * 100, mapSize * 100);
     this.input.keyboard.addKeyCapture([Phaser.Keyboard.LEFT, Phaser.Keyboard.RIGHT, Phaser.Keyboard.UP, Phaser.Keyboard.DOWN]);
-
-    // Create test environement
-    let tile = this.map.getTile(32091, 32200);
-    tile.createEnv('tree', 0, 0.5, 0.875);
-    tile.blocks = true;
-
-    tile = this.map.getTile(32086,32205);
-    tile.createEnv('tree2', 2, 0.25, 0.875);
-    tile.blocks = true;
-
 
     // Join channels to listen on events from backend
     this.channel.on("move", user => {
@@ -72,6 +58,17 @@ export default class MainState extends Phaser.State {
       if (user.user_id == this.player.id) return;
       this.users.add(user);
     });
+
+    this.channel.on("map_data", mapData => {
+      mapData.map.forEach(mapTile => {
+        let sprite = this.add.sprite(mapTile.x * field, mapTile.y * field, 'item_' + mapTile.id)
+        sprite.scale.setTo(scale, scale);
+        sprite.x -= field / 2;
+        sprite.y -= field / 2;
+    
+        this.world.sendToBack(sprite);
+      })
+    })
 
     this.channel.join();
   }
@@ -89,17 +86,6 @@ export default class MainState extends Phaser.State {
     if (!this.stick.isDown && this.input.keyboard.isDown(Phaser.Keyboard.DOWN)) direction.y++;
 
     this.player.update(direction, this.time.fps);
-
-    // this.group.sort('y', Phaser.Group.SORT_ASCENDING);
-    this.group.customSort((a, b) => {
-      if (a.y == b.y) {
-        if (a.env) return 1;
-        if (b.env) return -1;
-        return 0;
-      } else {
-        return a.y > b.y ? 1 : -1;
-      }
-    });
   }
 
   render() {
@@ -108,7 +94,7 @@ export default class MainState extends Phaser.State {
     this.game.debug.text(`x: ${this.player.position.x} y: ${this.player.position.y}`, 2, 32, "#00ff00");
     if (this.player.joined) {
       // this.debug.spriteInfo(player.sprite, 32, 180);
-      // this.game.debug.spriteCoords(this.player.sprite, 6, 500);
+      this.game.debug.spriteCoords(this.player.sprite, 6, 200);
     }
   }
 

@@ -1,5 +1,5 @@
 let mapSize = 65000;
-let size = 144;
+let size = 32;
 let field = 40;
 let scale = field / size;
 

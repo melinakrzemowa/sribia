@@ -2,6 +2,7 @@ defmodule Abyss.Game do
   alias Abyss.{Accounts, Board}
 
   @starting_position {32097, 32219}
+  @map_range 20
 
   def join(user_id) do
     user =
@@ -44,6 +45,13 @@ defmodule Abyss.Game do
       end
     else
       {:error, {user.x, user.y}}
+    end
+  end
+
+  def get_map_data(x, y, z) do
+    for i <- (x-@map_range)..(x+@map_range), j <- (y-@map_range)..(y+@map_range) do
+      {:ok, data} = Cachex.get(:map, {i, j, z})
+      Map.merge(data, %{x: i, y: j, z: z})
     end
   end
 

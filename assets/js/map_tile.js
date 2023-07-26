@@ -18,6 +18,7 @@ export default class MapTile {
     sprite.anchor.setTo(anchor_x, anchor_y);
     sprite.env = true;
     this.envSprites.push(sprite);
+    return sprite;
   }
 
   putObject(object) {

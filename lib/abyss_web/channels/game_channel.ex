@@ -17,6 +17,9 @@ defmodule AbyssWeb.GameChannel do
     push(socket, "joined", %{user_id: user.id, name: user.name, speed: user.speed, x: user.x, y: user.y})
     broadcast(socket, "user_joined", %{user_id: user.id, name: user.name, speed: user.speed, x: user.x, y: user.y})
 
+    map_data = Game.get_map_data(user.x, user.y, 7)
+    push(socket, "map_data", %{map: map_data})
+
     Enum.each(Game.get_fields({user.x, user.y}), fn {position, list} ->
       Enum.each(list, fn object ->
         push_object(socket, position, object)
