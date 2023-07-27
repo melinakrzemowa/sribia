@@ -58,14 +58,27 @@ export default class MainState extends Phaser.State {
 
     this.channel.on("map_data", mapData => {
       mapData.map.forEach(mapTile => {
-        if (!mapTile.id) return;
+        if (mapTile.id) {
+          let sprite = this.add.tileSprite(mapTile.x * field, mapTile.y * field, 32, 32, 'items', 'item_' + mapTile.id + '.png')
+          sprite.scale.setTo(scale, scale);
+          // sprite.x -= field / 2;
+          // sprite.y -= field / 2;
+      
+          this.world.sendToBack(sprite);
+        }
 
-        let sprite = this.add.tileSprite(mapTile.x * field, mapTile.y * field, 32, 32, 'items', 'item_' + mapTile.id + '.png')
-        sprite.scale.setTo(scale, scale);
-        sprite.x -= field / 2;
-        sprite.y -= field / 2;
-    
-        this.world.sendToBack(sprite);
+        if (mapTile.items) {
+          mapTile.items.forEach(item => {
+            let tile = this.map.getTile(mapTile.x, mapTile.y);
+            let itemData = items[item.id]
+
+            console.log(itemData)
+
+            tile.createEnv('items', 'item_' + item.id + '.png', itemData);
+
+            tile.blocks = true;
+          })
+        }
       })
     })
 

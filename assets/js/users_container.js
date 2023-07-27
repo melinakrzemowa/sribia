@@ -11,7 +11,7 @@ export default class UsersContainer {
   createUserSprite(user) {
     let sprite = this.state.group.create(user.x * field, user.y * field, 'babe');
     sprite.scale.setTo(2 * field / 144, 2 * field / 144);
-    sprite.anchor.setTo(0.5, 0.75)
+    sprite.anchor.setTo(0.25, 0.5)
 
     sprite.animations.add('s_stand', [0]);
     sprite.animations.add('n_stand', [5]);
