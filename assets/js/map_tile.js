@@ -29,6 +29,18 @@ export default class MapTile {
             let sprite = this.map.state.add.sprite((this.x - w) * field, (this.y - h) * field, 'tibia' + sheetNumber, spriteId.toString())
             sprite.scale.setTo(scale, scale);
             sprite.anchor.setTo(0.5, 0.5)
+
+            if (itemData.frames > 1) {
+              let frames = [];
+
+              for (let f = 0; f < itemData.frames; f++) {
+                let index = this.getSpriteIndex(itemData, w, h, l, this.x % itemData.patternX, this.y % itemData.patternY, 0, f)
+                frames[f] = itemData.sprites[index].toString()
+              }
+
+              sprite.animations.add('idle', frames)
+              sprite.animations.play('idle', 2, true);
+            }
           }
         }
       }

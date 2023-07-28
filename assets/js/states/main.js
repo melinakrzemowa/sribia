@@ -28,6 +28,10 @@ export default class MainState extends Phaser.State {
     this.load.atlasJSONHash('tibia7', '/sprites/tibia7.png', '/sprites/tibia7.json')
   }
 
+  getSpriteIndex(group, w, h, l, x, y, z, f) {
+    return ((((((f % group.frames) * group.patternZ + z) * group.patternY + y) * group.patternX + x) * group.layers + l) * group.height + h) * group.width + w;
+  };
+
   create() {
     // FPS
     this.time.advancedTiming = true;
@@ -90,6 +94,18 @@ export default class MainState extends Phaser.State {
               sprite.anchor.setTo(0.5, 0.5)
           
               this.world.sendToBack(sprite);
+
+              if (mapTileData.frames > 1) {
+                let frames = [];
+  
+                for (let f = 0; f < mapTileData.frames; f++) {
+                  let index = this.getSpriteIndex(mapTileData, 0, 0, layer, mapTile.x % mapTileData.patternX, mapTile.y % mapTileData.patternY, 0, f)
+                  frames[f] = mapTileData.sprites[index].toString()
+                }
+  
+                sprite.animations.add('idle', frames)
+                sprite.animations.play('idle', 2, true);
+              }
             }
           }
         }
