@@ -27,7 +27,7 @@ defmodule Abyss.Game.MapLoader do
 
         Logger.info("[MapLoader] Loading objects...")
 
-        items_file = File.read!("assets/js/items.json")
+        items_file = File.read!("assets/js/data/items.json")
         Logger.info("[MapLoader] Loaded Items file")
 
         {:ok, items} = Jason.decode(items_file)

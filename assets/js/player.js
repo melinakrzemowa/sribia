@@ -106,28 +106,34 @@ export default class Player {
       }
       this.moving = false;
       this.sprite.animations.stop();
-      let animation = this.getAnimation();
-      this.sprite.animations.play(animation + '_stand', 0, true);
+      this.sprite.animations.play(this.getAnimation() + '_stand', 0, true);
 
       this.fixPosition();
     }
   }
 
+  getDirection() {
+    let direction = "";
+    if (this.direction.y > 0) direction += "s";
+    if (this.direction.y < 0) direction += "n";
+    if (this.direction.x > 0) direction += "e";
+    if (this.direction.x < 0) direction += "w";
+    return direction;
+  }
+
   getAnimation() {
-    let animation = "";
-    if (this.direction.y > 0) animation += "s";
-    if (this.direction.y < 0) animation += "n";
-    if (this.direction.x > 0) animation += "e";
-    if (this.direction.x < 0) animation += "w";
-    return animation;
+    if (this.direction.x > 0) return "e";
+    if (this.direction.x < 0) return "w";
+    if (this.direction.y > 0) return "s";
+    if (this.direction.y < 0) return "n";
+    
+    return "";
   }
 
   updateDirection(direction) {
     this.direction = direction;
-    let animation = this.getAnimation();
-
-    this.sprite.animations.play(animation + '_move', 8, true);
-    return animation;
+    this.sprite.animations.play(this.getAnimation() + '_move', 4, true);
+    return this.getDirection();
   }
 
   movingDistance() {

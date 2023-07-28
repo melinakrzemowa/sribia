@@ -5,7 +5,7 @@ import GameChannel from "../channels/game_channel"
 import Player from "../player"
 import UsersContainer from "../users_container"
 import MobileDetect from "mobile-detect"
-import items from "../items.json" assert {type: 'json'}
+import items from "../data/items.json" assert {type: 'json'}
 
 export default class MainState extends Phaser.State {
 
@@ -17,7 +17,6 @@ export default class MainState extends Phaser.State {
     this.group = this.add.group();
 
     this.load.atlas('generic', '/sprites/skins/generic-joystick.png', '/sprites/skins/generic-joystick.json');
-    this.load.spritesheet('babe', '/sprites/babe.png', 144, 144, 40);
 
     this.load.atlasJSONHash('tibia1', '/sprites/tibia1.png', '/sprites/tibia1.json')
     this.load.atlasJSONHash('tibia2', '/sprites/tibia2.png', '/sprites/tibia2.json')

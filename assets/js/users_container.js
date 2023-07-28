@@ -1,5 +1,6 @@
-import { field, size } from "./globals"
+import { field, scale, size } from "./globals"
 import NameText from "./names"
+import outfits from "./data/outfits.json" assert {type: 'json'}
 
 export default class UsersContainer {
 
@@ -8,29 +9,50 @@ export default class UsersContainer {
     this.container = {}; // users contained by user_id
   }
 
+  getSpriteIndex(group, w, h, l, x, y, z, f) {
+    return ((((((f % group.frames) * group.patternZ + z) * group.patternY + y) * group.patternX + x) * group.layers + l) * group.height + h) * group.width + w;
+  };
+
   createUserSprite(user) {
-    let sprite = this.state.group.create(user.x * field, user.y * field, 'babe');
-    sprite.scale.setTo(2 * field / 144, 2 * field / 144);
-    sprite.anchor.setTo(0.5, 0.75)
 
-    sprite.animations.add('s_stand', [0]);
-    sprite.animations.add('n_stand', [5]);
-    sprite.animations.add('e_stand', [10]);
-    sprite.animations.add('w_stand', [15]);
-    sprite.animations.add('ne_stand', [20]);
-    sprite.animations.add('se_stand', [25]);
-    sprite.animations.add('sw_stand', [30]);
-    sprite.animations.add('nw_stand', [35]);
-    sprite.animations.add('s_move', [1, 2, 3, 4]);
-    sprite.animations.add('n_move', [6, 7, 8, 9]);
-    sprite.animations.add('e_move', [11, 12, 13, 14]);
-    sprite.animations.add('w_move', [16, 17, 18, 19]);
-    sprite.animations.add('ne_move', [21, 22, 23, 24]);
-    sprite.animations.add('se_move', [26, 27, 28, 29]);
-    sprite.animations.add('sw_move', [31, 32, 33, 34]);
-    sprite.animations.add('nw_move', [36, 37, 38, 39]);
+    user.outfit = 128
+    let outfitData = outfits[user.outfit]
+    let itemData = outfitData
 
-    return sprite;
+    for (let w = 0; w < itemData.width; w++) {
+      for (let h = 0; h < itemData.height; h++) {
+        for (var l = 0; l < itemData.layers; l++) {
+          let index = this.getSpriteIndex(itemData, w, h, l, 0, 0, 0, 0)
+          let spriteId = itemData.sprites[index]
+        
+          if (spriteId > 0) {
+            let sheetNumber = Math.ceil(spriteId / 1000)
+            let sprite = this.state.add.sprite((user.x - w) * field, (user.y - h) * field, 'tibia' + sheetNumber, spriteId.toString())
+            this.state.group.add(sprite)
+            sprite.scale.setTo(scale, scale);
+            sprite.anchor.setTo(0.5, 0.5)
+
+            let directions = ['n', 'e', 's', 'w']
+
+            directions.forEach((dir, i) => {
+              let frames = [];
+
+              for (let f = 1; f < itemData.frames; f++) {
+                let index = this.getSpriteIndex(itemData, w, h, l, i, 0, 0, f)
+                frames[f] = itemData.sprites[index].toString()
+              }
+  
+              sprite.animations.add(dir + '_move', frames)
+
+              let index = this.getSpriteIndex(itemData, w, h, l, i, 0, 0, 0)
+              sprite.animations.add(dir + '_stand', [itemData.sprites[index].toString()])
+            })
+
+            return sprite;
+          }
+        }
+      }
+    }
   }
 
   add(user) {
