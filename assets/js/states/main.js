@@ -18,7 +18,6 @@ export default class MainState extends Phaser.State {
 
     this.load.atlas('generic', '/sprites/skins/generic-joystick.png', '/sprites/skins/generic-joystick.json');
     this.load.spritesheet('babe', '/sprites/babe.png', 144, 144, 40);
-    this.load.atlasJSONHash('items', '/sprites/items.png', '/sprites/items.json')
 
     this.load.atlasJSONHash('tibia1', '/sprites/tibia1.png', '/sprites/tibia1.json')
     this.load.atlasJSONHash('tibia2', '/sprites/tibia2.png', '/sprites/tibia2.json')
