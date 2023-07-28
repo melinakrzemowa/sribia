@@ -19,6 +19,14 @@ export default class MainState extends Phaser.State {
     this.load.atlas('generic', '/sprites/skins/generic-joystick.png', '/sprites/skins/generic-joystick.json');
     this.load.spritesheet('babe', '/sprites/babe.png', 144, 144, 40);
     this.load.atlasJSONHash('items', '/sprites/items.png', '/sprites/items.json')
+
+    this.load.atlasJSONHash('tibia1', '/sprites/tibia1.png', '/sprites/tibia1.json')
+    this.load.atlasJSONHash('tibia2', '/sprites/tibia2.png', '/sprites/tibia2.json')
+    this.load.atlasJSONHash('tibia3', '/sprites/tibia3.png', '/sprites/tibia3.json')
+    this.load.atlasJSONHash('tibia4', '/sprites/tibia4.png', '/sprites/tibia4.json')
+    this.load.atlasJSONHash('tibia5', '/sprites/tibia5.png', '/sprites/tibia5.json')
+    this.load.atlasJSONHash('tibia6', '/sprites/tibia6.png', '/sprites/tibia6.json')
+    this.load.atlasJSONHash('tibia7', '/sprites/tibia7.png', '/sprites/tibia7.json')
   }
 
   create() {
@@ -58,27 +66,36 @@ export default class MainState extends Phaser.State {
 
     this.channel.on("map_data", mapData => {
       mapData.map.forEach(mapTile => {
-        if (mapTile.id) {
-          let sprite = this.add.tileSprite(mapTile.x * field, mapTile.y * field, 32, 32, 'items', 'item_' + mapTile.id + '.png')
-          sprite.scale.setTo(scale, scale);
-          // sprite.x -= field / 2;
-          // sprite.y -= field / 2;
-      
-          this.world.sendToBack(sprite);
-        }
-
         if (mapTile.items) {
           mapTile.items.forEach(item => {
             let tile = this.map.getTile(mapTile.x, mapTile.y);
             let itemData = items[item.id]
 
-            console.log(itemData)
-
-            tile.createEnv('items', 'item_' + item.id + '.png', itemData);
-
+            tile.createEnv(itemData);
             tile.blocks = true;
           })
         }
+
+        if (mapTile.id) {
+          let mapTileData = items[mapTile.id]
+          let pattern = ((mapTile.x) % mapTileData.patternX) + ((mapTile.y) % mapTileData.patternY) * ( mapTileData.patternX)
+
+          // we need to start from the back so we keep the highest layers on top
+          for (var layer = mapTileData.layers - 1; layer >= 0; layer--) {
+            let spriteId = mapTileData.sprites[layer + pattern * mapTileData.layers]
+
+            if (spriteId > 0) {
+              let sheetNumber = Math.ceil(spriteId / 1000)
+              let sprite = this.add.sprite(mapTile.x * field, mapTile.y * field, 'tibia' + sheetNumber, spriteId.toString())
+              sprite.scale.setTo(scale, scale);
+              sprite.anchor.setTo(0.5, 0.5)
+          
+              this.world.sendToBack(sprite);
+            }
+          }
+        }
+
+        
       })
     })
 
@@ -116,8 +133,7 @@ export default class MainState extends Phaser.State {
     this.game.debug.text(this.time.fps || '--', 2, 14, "#00ff00");
     this.game.debug.text(`x: ${this.player.position.x} y: ${this.player.position.y}`, 2, 32, "#00ff00");
     if (this.player.joined) {
-      // this.debug.spriteInfo(player.sprite, 32, 180);
-      this.game.debug.spriteCoords(this.player.sprite, 6, 200);
+      this.game.debug.spriteCoords(this.player.sprite, 6, 400);
     }
   }
 
