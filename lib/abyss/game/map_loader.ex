@@ -5,17 +5,17 @@ defmodule Abyss.Game.MapLoader do
     def load_cache() do
       spawn_link(fn ->
         {:ok, unzip} =
-          "priv/map.json.zip"
+          "#{:code.priv_dir(:abyss)}/map.json.zip"
           |> Unzip.LocalFile.open()
           |> Unzip.new()
 
         Unzip.file_stream!(unzip, "map.json")
-        |> Stream.into(File.stream!("priv/map.json"))
+        |> Stream.into(File.stream!("#{:code.priv_dir(:abyss)}/map.json"))
         |> Stream.run()
 
         Logger.info("[MapLoader] Map file unzipped")
 
-        map_file = File.read!("priv/map.json")
+        map_file = File.read!("#{:code.priv_dir(:abyss)}/map.json")
         Logger.info("[MapLoader] Loaded Map file")
 
         {:ok, otbm_map} = Jason.decode(map_file)
@@ -27,7 +27,7 @@ defmodule Abyss.Game.MapLoader do
 
         Logger.info("[MapLoader] Loading objects...")
 
-        items_file = File.read!("assets/js/data/items.json")
+        items_file = File.read!("#{:code.priv_dir(:abyss)}/items.json")
         Logger.info("[MapLoader] Loaded Items file")
 
         {:ok, items} = Jason.decode(items_file)
