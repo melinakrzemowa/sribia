@@ -30,7 +30,7 @@ export default class UsersContainer {
             let sprite = this.state.add.sprite((user.x - w) * field, (user.y - h) * field, 'tibia' + sheetNumber, spriteId.toString())
             this.state.group.add(sprite)
             sprite.scale.setTo(scale, scale);
-            sprite.anchor.setTo(0.5, 0.5)
+            sprite.anchor.setTo(0.75, 0.75)
 
             let directions = ['n', 'e', 's', 'w']
 
