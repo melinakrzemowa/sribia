@@ -27,8 +27,10 @@ export default class MapTile {
           if (spriteId > 0) {
             let sheetNumber = Math.ceil(spriteId / 1000)
             let sprite = this.map.state.add.sprite((this.x - w) * field, (this.y - h) * field, 'tibia' + sheetNumber, spriteId.toString())
+            this.map.state.group.add(sprite)
             sprite.scale.setTo(scale, scale);
             sprite.anchor.setTo(0.5, 0.5)
+            sprite.gameObject = {position: {x: this.x, y: this.y}}
 
             if (itemData.frames > 1) {
               let frames = [];

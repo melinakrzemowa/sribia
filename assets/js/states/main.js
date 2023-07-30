@@ -130,15 +130,15 @@ export default class MainState extends Phaser.State {
 
     this.player.update(direction, this.time.fps);
 
-    // this.group.sort('y', Phaser.Group.SORT_ASCENDING);
-    this.group.customSort((a, b) => {
-      if (a.y == b.y) {
-        if (a.env) return 1;
-        if (b.env) return -1;
-        return 0;
-      } else {
-        return a.y > b.y ? 1 : -1;
+    this.group.customSort((a, b) => {a
+      if (a.gameObject.position.y > b.gameObject.position.y) {
+        return 1;
       }
+      if (a.gameObject.position.y == b.gameObject.position.y) {
+        if (a.gameObject.position.x > b.gameObject.position.x) return 1;
+        if (a.gameObject.position.x == b.gameObject.position.x) return 0;
+      }
+      return -1;
     });
   }
 

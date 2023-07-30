@@ -32,6 +32,7 @@ export default class Player {
       this.movingPosition.y = this.position.y = payload.y;
 
       this.sprite = this.state.users.createUserSprite(payload);
+      this.sprite.gameObject = this
       this.state.camera.follow(this.sprite);
 
       this.nameText = new NameText(this.state.add, this);
