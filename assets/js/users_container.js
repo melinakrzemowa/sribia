@@ -14,10 +14,9 @@ export default class UsersContainer {
   };
 
   createUserSprite(user) {
-
     user.outfit = 128
     let outfitData = outfits[user.outfit]
-    let itemData = outfitData
+    let itemData = outfitData.groups[0]
 
     for (let w = 0; w < itemData.width; w++) {
       for (let h = 0; h < itemData.height; h++) {

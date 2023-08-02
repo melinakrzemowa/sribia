@@ -6,6 +6,7 @@ export default class Player {
   constructor(state) {
     this.state = state;
     this.id = window.user_id;
+    this.type = 'character'
 
     this.position = {x: 0, y: 0};
     this.movingPosition = {x: 0, y: 0};
@@ -133,12 +134,12 @@ export default class Player {
 
   updateDirection(direction) {
     this.direction = direction;
-    this.sprite.animations.play(this.getAnimation() + '_move', 4, true);
+    this.sprite.animations.play(this.getAnimation() + '_move', 8, true);
     return this.getDirection();
   }
 
   movingDistance() {
-    let distance = field / Math.round(100000 / (2 * (this.speed - 1) + 120)) * (1000 / this.fps);
+    let distance = field / Math.round(100000 / (2 * (this.speed - 1) + 180)) * (1000 / this.fps);
     return distance > field ? field : distance;
   }
 

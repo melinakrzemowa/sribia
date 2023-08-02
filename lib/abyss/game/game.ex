@@ -31,7 +31,7 @@ defmodule Abyss.Game do
 
   def move(user_id, direction) do
     user = Accounts.get_user!(user_id)
-    move_time = round(100_000 / (2 * (user.speed - 1) + 120))
+    move_time = round(100_000 / (2 * (user.speed - 1) + 180))
     diff = NaiveDateTime.diff(NaiveDateTime.utc_now(), user.last_move, :millisecond)
     # allow slightly faster movement for smooth movement on frontend
     if diff >= move_time * 0.85 do

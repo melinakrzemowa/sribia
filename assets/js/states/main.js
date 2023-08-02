@@ -71,15 +71,14 @@ export default class MainState extends Phaser.State {
         if (mapTile.items) {
           mapTile.items.forEach(item => {
             let tile = this.map.getTile(mapTile.x, mapTile.y);
-            let itemData = items[item.id]
 
-            tile.createEnv(itemData);
-            tile.blocks = true;
+            tile.createEnv(items[item.id]);
+            tile.blocks = tile.blocks || !!items[item.id].isUnpassable;
           })
         }
 
         if (mapTile.id) {
-          let mapTileData = items[mapTile.id]
+          let mapTileData = items[mapTile.id].groups[0]
           let pattern = ((mapTile.x) % mapTileData.patternX) + ((mapTile.y) % mapTileData.patternY) * ( mapTileData.patternX)
 
           // we need to start from the back so we keep the highest layers on top
@@ -130,14 +129,57 @@ export default class MainState extends Phaser.State {
 
     this.player.update(direction, this.time.fps);
 
-    this.group.customSort((a, b) => {a
-      if (a.gameObject.position.y > b.gameObject.position.y) {
+    this.group.customSort((a, b) => {
+      let aPosition = a.gameObject.position
+      let bPosition = b.gameObject.position
+
+      if (a.gameObject.type == 'character') {
+        aPosition = {y: a.y / field, x: a.x / field}
+      }
+
+      if (b.gameObject.type == 'character') {
+        bPosition = {y: b.y / field, x: b.x / field}
+      }
+
+      if (aPosition.y > bPosition.y) {
         return 1;
       }
-      if (a.gameObject.position.y == b.gameObject.position.y) {
-        if (a.gameObject.position.x > b.gameObject.position.x) return 1;
-        if (a.gameObject.position.x == b.gameObject.position.x) return 0;
+
+      if (aPosition.y == bPosition.y) {
+        // console.log(aPosition, bPosition, a.gameObject, b.gameObject)
+
+        // if (a.gameObject.isOnTop || b.gameObject.isOnBottom) return 1;
+        // if (b.gameObject.isOnTop || a.gameObject.isOnBottom) return -1;
+
+        // let ay = a.gameObject.position.y * field
+        // let by = b.gameObject.position.y * field
+
+        // if (a.gameObject.type == 'character') {
+        //   ay = a.y
+        // }
+
+        // if (b.gameObject.type == 'character') {
+        //   by = b.y
+        // }
+
+        // if (ay > by) {
+        //   console.log(">", ay, by, a.gameObject, b.gameObject)
+        //   return 1;
+        // }
+
+        // if (ay < by) {
+        //   console.log("<", ay, by, a.gameObject, b.gameObject)
+        //   return -1;
+        // }
+
+        if (aPosition.x > bPosition.x) return 1;
+        if (aPosition.x < bPosition.x) return -1;
+
+        if (aPosition.x == bPosition.x) {
+          return 0;
+        }
       }
+
       return -1;
     });
   }
@@ -147,7 +189,7 @@ export default class MainState extends Phaser.State {
     this.game.debug.text(this.time.fps || '--', 2, 14, "#00ff00");
     this.game.debug.text(`x: ${this.player.position.x} y: ${this.player.position.y}`, 2, 32, "#00ff00");
     if (this.player.joined) {
-      this.game.debug.spriteCoords(this.player.sprite, 6, 400);
+      this.game.debug.spriteCoords(this.player.sprite, 6, 300);
     }
   }
 
