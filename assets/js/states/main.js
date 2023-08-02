@@ -130,6 +130,13 @@ export default class MainState extends Phaser.State {
     this.player.update(direction, this.time.fps);
 
     this.group.customSort((a, b) => {
+      if (!a.gameObject || !b.gameObject || !a.gameObject.position || !b.gameObject.position) {
+        console.error("game object not available!", a, b)
+        if (a.y > b.y) return 1;
+        if (a.y === b.y) return 0;
+        if (a.y < b.y) return -1;
+      }
+
       let aPosition = a.gameObject.position
       let bPosition = b.gameObject.position
 
