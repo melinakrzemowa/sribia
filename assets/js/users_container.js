@@ -58,13 +58,13 @@ export default class UsersContainer {
     if (!this.container[user.user_id]) {
       let userObj = {
         sprite: this.createUserSprite(user),
-        x: user.x,
-        y: user.y,
+        position: {x: user.x, y: user.y},
         name: user.name
       };
 
       userObj.nameText = new NameText(this.state.add, userObj);
 
+      userObj.sprite.gameObject = userObj;
       this.container[user.user_id] = userObj;
       this.state.map.putObject(user.x, user.y, userObj);
     }
@@ -82,14 +82,14 @@ export default class UsersContainer {
     let user = this.get(payload.user_id);
 
     // Check if sprite should be moved
-    if (x != user.x || y != user.y) {
+    if (x != user.position.x || y != user.position.y) {
 
       // Check which animation to play
       let animation = "";
-      if (y > user.y) animation += "s";
-      if (y < user.y) animation += "n";
-      if (x > user.x) animation += "e";
-      if (x < user.x) animation += "w";
+      if (y > user.position.y) animation = "s";
+      if (y < user.position.y) animation = "n";
+      if (x > user.position.x) animation = "e";
+      if (x < user.position.x) animation = "w";
 
       // Save last move time
       user.moved = Date.now();
@@ -115,11 +115,11 @@ export default class UsersContainer {
     }
 
     // Save user position
-    this.state.map.deleteObject(user.x, user.y, user);
+    this.state.map.deleteObject(user.position.x, user.position.y, user);
     this.state.map.putObject(x, y, user);
 
-    user.x = x;
-    user.y = y;
+    user.position.x = x;
+    user.position.y = y;
   }
 
 }
