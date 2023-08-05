@@ -134,18 +134,24 @@ export default class MainState extends Phaser.State {
       let bPosition = b.gameObject.position
 
       if (a.gameObject.type == 'character') {
-        aPosition = {y: a.y / field, x: a.x / field}
+        aPosition = {y: a.y / field, x: a.x / field, isCharacter: true}
       }
 
       if (b.gameObject.type == 'character') {
-        bPosition = {y: b.y / field, x: b.x / field}
+        bPosition = {y: b.y / field, x: b.x / field, isCharacter: true}
       }
+
+      if (aPosition.x > bPosition.x) return 1;
+      if (aPosition.x < bPosition.x) return -1;
 
       if (aPosition.y > bPosition.y) {
         return 1;
       }
 
       if (aPosition.y == bPosition.y) {
+        if (aPosition.isCharacter && !bPosition.isCharacter && b.gameObject.isOnTop) return -1;
+        if (bPosition.isCharacter && !aPosition.isCharacter && a.gameObject.isOnTop) return 1;
+        
         // console.log(aPosition, bPosition, a.gameObject, b.gameObject)
 
         // if (a.gameObject.isOnTop || b.gameObject.isOnBottom) return 1;
@@ -172,12 +178,7 @@ export default class MainState extends Phaser.State {
         //   return -1;
         // }
 
-        if (aPosition.x > bPosition.x) return 1;
-        if (aPosition.x < bPosition.x) return -1;
-
-        if (aPosition.x == bPosition.x) {
-          return 0;
-        }
+        return 0;
       }
 
       return -1;

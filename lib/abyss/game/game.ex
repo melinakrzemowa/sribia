@@ -2,7 +2,7 @@ defmodule Abyss.Game do
   alias Abyss.{Accounts, Board}
 
   @starting_position {32097, 32219}
-  @map_range 20
+  @map_range 40
 
   def join(user_id) do
     user =
