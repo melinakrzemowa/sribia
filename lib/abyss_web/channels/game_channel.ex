@@ -42,6 +42,9 @@ defmodule AbyssWeb.GameChannel do
 
     case Game.move(socket.assigns[:user_id], direction) do
       {:ok, {x, y}, move_time} ->
+        map_data = Game.get_map_data(x, y, 7)
+        push(socket, "map_data", %{map: map_data})
+
         broadcast(socket, "move", %{x: x, y: y, user_id: socket.assigns[:user_id], move_time: move_time})
         {:noreply, socket}
 

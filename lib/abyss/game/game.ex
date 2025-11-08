@@ -2,7 +2,8 @@ defmodule Abyss.Game do
   alias Abyss.{Accounts, Board}
 
   @starting_position {32097, 32219}
-  @map_range 40
+  @map_range_x 8
+  @map_range_y 6
 
   def join(user_id) do
     user =
@@ -15,7 +16,7 @@ defmodule Abyss.Game do
   end
 
   def get_fields({x, y}) do
-    Board.get_fields({x, y}, 100)
+    Board.get_fields({x, y}, {7, 5})
     |> Enum.map(fn {position, field} -> {position, load_field(field)} end)
   end
 
@@ -49,7 +50,7 @@ defmodule Abyss.Game do
   end
 
   def get_map_data(x, y, z) do
-    for i <- (x - @map_range)..(x + @map_range), j <- (y - @map_range)..(y + @map_range) do
+    for i <- (x - @map_range_x)..(x + @map_range_x), j <- (y - @map_range_y)..(y + @map_range_y) do
       {:ok, data} = Cachex.get(:map, {i, j, z})
 
       if data do

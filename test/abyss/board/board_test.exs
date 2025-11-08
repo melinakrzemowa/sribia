@@ -50,7 +50,7 @@ defmodule Abyss.Board.BoardTest do
   end
 
   test "gets fields", %{state: state} do
-    {:reply, fields, _state} = Board.handle_call({:get_fields, {2, 2}, 1}, self(), state)
+    {:reply, fields, _state} = Board.handle_call({:get_fields, {2, 2}, {1, 1}}, self(), state)
 
     assert %{
              {1, 1} => [{{:user, 1}, true}],
