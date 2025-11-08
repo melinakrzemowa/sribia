@@ -89,13 +89,14 @@ export default class MainState extends Phaser.State {
     this.stick = this.pad.addStick(0, 0, 200, "generic");
     this.stick.alignBottomLeft(0);
 
+    // Enable responsive scaling for all devices
+    this.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
+
     // Verify if on mobile
     var md = new MobileDetect(window.navigator.userAgent);
     if (!md.mobile()) {
       this.stick.alpha = 0;
       this.stick.enabled = false;
-    } else {
-      this.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
     }
 
     this.world.setBounds(-field / 2, -field / 2, mapSize * 100, mapSize * 100);
@@ -216,10 +217,6 @@ export default class MainState extends Phaser.State {
       50,
       "#00ff00"
     );
-
-    if (this.player.joined) {
-      this.game.debug.spriteCoords(this.player.sprite, 6, 300);
-    }
   }
 
   octantToDirection() {
