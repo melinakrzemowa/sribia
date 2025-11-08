@@ -78,6 +78,11 @@ export default class MainState extends Phaser.State {
     // Window active in background
     this.stage.disableVisibilityChange = true;
 
+    // Performance tracking for sorting optimization
+    this.performance = {
+      lastGroupSize: 0,
+    };
+
     // Add Joystick
     this.pad = this.game.plugins.add(Phaser.VirtualJoystick);
 
@@ -139,74 +144,61 @@ export default class MainState extends Phaser.State {
 
     this.player.update(direction, this.time.fps);
 
-    this.group.customSort((a, b) => {
-      let aPosition = a.gameObject.position;
-      let bPosition = b.gameObject.position;
+    // Optimize sorting - only sort when needed
+    const currentGroupSize = this.group.children.length;
+    const groupSizeChanged =
+      Math.abs(currentGroupSize - this.performance.lastGroupSize) > 0;
 
-      if (a.gameObject.type == "character") {
-        aPosition = { y: a.y / field, x: a.x / field, isCharacter: true };
-      }
+    // Only sort if:
+    // 1. Group size changed (sprite added/removed)
+    // 2. Player is moving (sprites changing positions)
+    const shouldSort =
+      groupSizeChanged || direction.x !== 0 || direction.y !== 0;
 
-      if (b.gameObject.type == "character") {
-        bPosition = { y: b.y / field, x: b.x / field, isCharacter: true };
-      }
+    if (shouldSort && currentGroupSize > 0) {
+      this.group.customSort((a, b) => {
+        let aPosition = a.gameObject.position;
+        let bPosition = b.gameObject.position;
 
-      if (aPosition.x > bPosition.x) return 1;
-      if (aPosition.x < bPosition.x) return -1;
+        if (a.gameObject.type == "character") {
+          aPosition = { y: a.y / field, x: a.x / field, isCharacter: true };
+        }
 
-      if (aPosition.y > bPosition.y) {
-        return 1;
-      }
+        if (b.gameObject.type == "character") {
+          bPosition = { y: b.y / field, x: b.x / field, isCharacter: true };
+        }
 
-      if (aPosition.y == bPosition.y) {
-        if (
-          aPosition.isCharacter &&
-          !bPosition.isCharacter &&
-          b.gameObject.isOnTop
-        )
-          return -1;
-        if (
-          bPosition.isCharacter &&
-          !aPosition.isCharacter &&
-          a.gameObject.isOnTop
-        )
+        if (aPosition.x > bPosition.x) return 1;
+        if (aPosition.x < bPosition.x) return -1;
+
+        if (aPosition.y > bPosition.y) {
           return 1;
+        }
 
-        // console.log(aPosition, bPosition, a.gameObject, b.gameObject)
+        if (aPosition.y == bPosition.y) {
+          if (
+            aPosition.isCharacter &&
+            !bPosition.isCharacter &&
+            b.gameObject.isOnTop
+          )
+            return -1;
+          if (
+            bPosition.isCharacter &&
+            !aPosition.isCharacter &&
+            a.gameObject.isOnTop
+          )
+            return 1;
 
-        // if (a.gameObject.isOnTop || b.gameObject.isOnBottom) return 1;
-        // if (b.gameObject.isOnTop || a.gameObject.isOnBottom) return -1;
+          return 0;
+        }
 
-        // let ay = a.gameObject.position.y * field
-        // let by = b.gameObject.position.y * field
-
-        // if (a.gameObject.type == 'character') {
-        //   ay = a.y
-        // }
-
-        // if (b.gameObject.type == 'character') {
-        //   by = b.y
-        // }
-
-        // if (ay > by) {
-        //   console.log(">", ay, by, a.gameObject, b.gameObject)
-        //   return 1;
-        // }
-
-        // if (ay < by) {
-        //   console.log("<", ay, by, a.gameObject, b.gameObject)
-        //   return -1;
-        // }
-
-        return 0;
-      }
-
-      return -1;
-    });
+        return -1;
+      });
+      this.performance.lastGroupSize = currentGroupSize;
+    }
   }
 
   render() {
-    // this.debug.cameraInfo(game.camera, 32, 32);
     this.game.debug.text(this.time.fps || "--", 2, 14, "#00ff00");
     this.game.debug.text(
       `x: ${this.player.position.x} y: ${this.player.position.y}`,
@@ -214,6 +206,17 @@ export default class MainState extends Phaser.State {
       32,
       "#00ff00"
     );
+
+    // Sprite count debugging
+    const worldSpriteCount = this.world.children.length;
+    const groupSpriteCount = this.group.children.length;
+    this.game.debug.text(
+      `Sprites - World: ${worldSpriteCount} | Group: ${groupSpriteCount}`,
+      2,
+      50,
+      "#00ff00"
+    );
+
     if (this.player.joined) {
       this.game.debug.spriteCoords(this.player.sprite, 6, 300);
     }
