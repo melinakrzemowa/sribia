@@ -114,6 +114,8 @@ export default class MainState extends Phaser.State {
 
     this.channel.on("map_data", (mapData) => {
       mapData.map.forEach((mapTile) => {
+        this.map.loadTile(mapTile);
+
         if (mapTile.items) {
           mapTile.items.forEach((item) => {
             let tile = this.map.getTile(mapTile.x, mapTile.y);
@@ -121,54 +123,6 @@ export default class MainState extends Phaser.State {
             tile.createEnv(items[item.id]);
             tile.blocks = tile.blocks || !!items[item.id].isUnpassable;
           });
-        }
-
-        if (mapTile.id) {
-          let mapTileData = items[mapTile.id].groups[0];
-          let pattern =
-            (mapTile.x % mapTileData.patternX) +
-            (mapTile.y % mapTileData.patternY) * mapTileData.patternX;
-
-          // we need to start from the back so we keep the highest layers on top
-          for (var layer = mapTileData.layers - 1; layer >= 0; layer--) {
-            let spriteId =
-              mapTileData.sprites[layer + pattern * mapTileData.layers];
-
-            if (spriteId > 0) {
-              let sheetNumber = Math.ceil(spriteId / 1000);
-              let sprite = this.add.sprite(
-                mapTile.x * field,
-                mapTile.y * field,
-                "tibia" + sheetNumber,
-                spriteId.toString()
-              );
-              sprite.scale.setTo(scale, scale);
-              sprite.anchor.setTo(0.5, 0.5);
-
-              this.world.sendToBack(sprite);
-
-              if (mapTileData.frames > 1) {
-                let frames = [];
-
-                for (let f = 0; f < mapTileData.frames; f++) {
-                  let index = this.getSpriteIndex(
-                    mapTileData,
-                    0,
-                    0,
-                    layer,
-                    mapTile.x % mapTileData.patternX,
-                    mapTile.y % mapTileData.patternY,
-                    0,
-                    f
-                  );
-                  frames[f] = mapTileData.sprites[index].toString();
-                }
-
-                sprite.animations.add("idle", frames);
-                sprite.animations.play("idle", 2, true);
-              }
-            }
-          }
         }
       });
     });

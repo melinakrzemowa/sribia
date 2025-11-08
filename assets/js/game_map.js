@@ -1,5 +1,6 @@
-import { mapSize } from "./globals";
 import MapTile from "./map_tile";
+import items from "./data/items.json" assert { type: "json" };
+import { mapSize, field, size, scale } from "./globals";
 
 export default class GameMap {
   constructor(state) {
@@ -27,13 +28,69 @@ export default class GameMap {
     return tile.deleteObject(object);
   }
 
+  loadTile(mapTile) {
+    let tile = this.getTile(mapTile.x, mapTile.y);
+
+    if (!tile.loaded && mapTile.id) {
+      tile.loaded = true;
+
+      console.log(this.getTile(mapTile.x, mapTile.y));
+
+      let mapTileData = items[mapTile.id].groups[0];
+      let pattern =
+        (mapTile.x % mapTileData.patternX) +
+        (mapTile.y % mapTileData.patternY) * mapTileData.patternX;
+
+      // we need to start from the back so we keep the highest layers on top
+      for (var layer = mapTileData.layers - 1; layer >= 0; layer--) {
+        let spriteId =
+          mapTileData.sprites[layer + pattern * mapTileData.layers];
+
+        if (spriteId > 0) {
+          let sheetNumber = Math.ceil(spriteId / 1000);
+          let sprite = this.state.add.sprite(
+            mapTile.x * field,
+            mapTile.y * field,
+            "tibia" + sheetNumber,
+            spriteId.toString()
+          );
+          sprite.scale.setTo(scale, scale);
+          sprite.anchor.setTo(0.5, 0.5);
+
+          this.state.world.sendToBack(sprite);
+
+          if (mapTileData.frames > 1) {
+            let frames = [];
+
+            for (let f = 0; f < mapTileData.frames; f++) {
+              let index = this.state.getSpriteIndex(
+                mapTileData,
+                0,
+                0,
+                layer,
+                mapTile.x % mapTileData.patternX,
+                mapTile.y % mapTileData.patternY,
+                0,
+                f
+              );
+              frames[f] = mapTileData.sprites[index].toString();
+            }
+
+            sprite.animations.add("idle", frames);
+            sprite.animations.play("idle", 2, true);
+          }
+        }
+      }
+    }
+  }
+
   getTile(x, y) {
     let tile = this.map.get(x * mapSize + y);
-    if (!tile) tile = this.setTile(x, y);
+    if (!tile) tile = this.createTile(x, y);
     return tile;
   }
 
-  setTile(x, y) {
+  createTile(x, y) {
     let tile = new MapTile(this, x, y);
     this.map.set(x * mapSize + y, tile);
     return tile;

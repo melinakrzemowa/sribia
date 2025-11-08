@@ -85,10 +85,10 @@ defmodule Abyss.Board do
     end
   end
 
-  def handle_call({:get_fields, {x, y}, range}, _from, %Container{} = container) do
+  def handle_call({:get_fields, {x, y}, {range_x, range_y}}, _from, %Container{} = container) do
     fields =
-      Enum.reduce(-range..range, %{}, fn i, a ->
-        Enum.reduce(-range..range, a, fn j, acc ->
+      Enum.reduce(-range_x..range_x, %{}, fn i, a ->
+        Enum.reduce(-range_y..range_y, a, fn j, acc ->
           field = Container.get_field(container, {x + i, y + j})
           Map.put(acc, {x + i, y + j}, field)
         end)

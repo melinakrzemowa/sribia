@@ -9,6 +9,7 @@ export default class MapTile {
     this.blocks = false;
     this.envSprites = [];
     this.objects = [];
+    this.loaded = false;
   }
 
   getSpriteIndex(group, w, h, l, x, y, z, f) {
