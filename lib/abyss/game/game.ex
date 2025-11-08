@@ -3,7 +3,7 @@ defmodule Abyss.Game do
 
   @starting_position {32097, 32219}
   @map_range_x 8
-  @map_range_y 6
+  @map_range_y 8
 
   def join(user_id) do
     user =
@@ -16,7 +16,7 @@ defmodule Abyss.Game do
   end
 
   def get_fields({x, y}) do
-    Board.get_fields({x, y}, {7, 5})
+    Board.get_fields({x, y}, {8, 8})
     |> Enum.map(fn {position, field} -> {position, load_field(field)} end)
   end
 

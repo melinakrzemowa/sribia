@@ -47,9 +47,6 @@ jobs:
           registry.melinakrzemowa.pl/sribia:latest
           registry.melinakrzemowa.pl/sribia:${{ steps.previoustag.outputs.tag }}
           registry.melinakrzemowa.pl/sribia:${{ steps.previoustag.outputs.tag }}-${{ steps.get_hash.outputs.HASH }}
-        build-args: |
-          VERSION=${{ steps.previoustag.outputs.tag }}
-          VERSION_HASH=${{ steps.get_hash.outputs.HASH }}
         cache-from: |
           type=registry,ref=registry.melinakrzemowa.pl/sribia:buildcache
           type=registry,ref=registry.melinakrzemowa.pl/sribia:latest
@@ -75,7 +72,6 @@ jobs:
         key: ${{ secrets.PRIVATE_KEY }}
         script: |
           sudo mv /home/${{ secrets.SSH_USERNAME }}/deploy/sribia/docker-compose.yml /var/www/sribia.melinakrzemowa.pl/docker-compose.yml
-          export VERSION=${{ steps.previoustag.outputs.tag }}
-          export VERSION_HASH=${{ steps.get_hash.outputs.HASH }}
+          export VERSION=${{ steps.previoustag.outputs.tag }}-${{ steps.get_hash.outputs.HASH }}
           cd /var/www/sribia.melinakrzemowa.pl
           docker compose up -d
