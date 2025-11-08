@@ -1,7 +1,6 @@
-version: "3.8"
 services:
   db:
-    image: postgres
+    image: postgres:13
     restart: unless-stopped
     volumes:
       - ./volumes/sribia_db:/var/lib/postgresql/data
@@ -9,7 +8,7 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: sribia
   web:
-    image: kelu/sribia:${VERSION}
+    image: registry.melinakrzemowa.pl/sribia:${VERSION}
     restart: unless-stopped
     environment:
       SECRET_KEY_BASE: ${SECRET_KEY_BASE}
