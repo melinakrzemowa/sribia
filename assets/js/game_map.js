@@ -32,10 +32,6 @@ export default class GameMap {
     let tile = this.getTile(mapTile.x, mapTile.y);
 
     if (!tile.loaded && mapTile.id) {
-      tile.loaded = true;
-
-      console.log(this.getTile(mapTile.x, mapTile.y));
-
       let mapTileData = items[mapTile.id].groups[0];
       let pattern =
         (mapTile.x % mapTileData.patternX) +
@@ -82,6 +78,17 @@ export default class GameMap {
         }
       }
     }
+
+    if (!tile.loaded && mapTile.items) {
+      mapTile.items.forEach((item) => {
+        let tile = this.getTile(mapTile.x, mapTile.y);
+
+        tile.createEnv(items[item.id]);
+        tile.blocks = tile.blocks || !!items[item.id].isUnpassable;
+      });
+    }
+
+    tile.loaded = true;
   }
 
   getTile(x, y) {

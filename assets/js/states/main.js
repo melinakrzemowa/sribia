@@ -115,15 +115,6 @@ export default class MainState extends Phaser.State {
     this.channel.on("map_data", (mapData) => {
       mapData.map.forEach((mapTile) => {
         this.map.loadTile(mapTile);
-
-        if (mapTile.items) {
-          mapTile.items.forEach((item) => {
-            let tile = this.map.getTile(mapTile.x, mapTile.y);
-
-            tile.createEnv(items[item.id]);
-            tile.blocks = tile.blocks || !!items[item.id].isUnpassable;
-          });
-        }
       });
     });
 
