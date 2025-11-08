@@ -1,16 +1,15 @@
-import {field} from "./globals"
-import NameText from "./names"
+import { field } from "./globals";
+import NameText from "./names";
 
 export default class Player {
-
   constructor(state) {
     this.state = state;
     this.id = window.user_id;
-    this.type = 'character'
+    this.type = "character";
 
-    this.position = {x: 0, y: 0};
-    this.movingPosition = {x: 0, y: 0};
-    this.direction = {x: 0, y: 0};
+    this.position = { x: 0, y: 0 };
+    this.movingPosition = { x: 0, y: 0 };
+    this.direction = { x: 0, y: 0 };
 
     this.speed = 1;
     this.joined = false;
@@ -20,7 +19,7 @@ export default class Player {
     this.moving = false;
     this.fps = 60;
 
-    this.state.channel.on("joined", payload => {
+    this.state.channel.on("joined", (payload) => {
       // reset state on reconnect
       if (this.sprite) this.sprite.destroy();
       if (this.nameText) this.nameText.destroy();
@@ -33,22 +32,25 @@ export default class Player {
       this.movingPosition.y = this.position.y = payload.y;
 
       this.sprite = this.state.users.createUserSprite(payload);
-      this.sprite.gameObject = this
+      this.sprite.gameObject = this;
       this.state.camera.follow(this.sprite);
 
       this.nameText = new NameText(this.state.add, this);
     });
 
-    this.state.channel.on("move", payload => {
+    this.state.channel.on("move", (payload) => {
       // Ignore other users
       if (payload.user_id != this.id) return;
 
       // If player move is blocked then stop movement
-      if (this.movingPosition.x != payload.x || this.movingPosition.y != payload.y) {
+      if (
+        this.movingPosition.x != payload.x ||
+        this.movingPosition.y != payload.y
+      ) {
         this.sprite.x = payload.x * field;
         this.sprite.y = payload.y * field;
-        this.movingPosition = {x: payload.x, y: payload.y}
-        this.position = {x: payload.x, y: payload.y}
+        this.movingPosition = { x: payload.x, y: payload.y };
+        this.position = { x: payload.x, y: payload.y };
         this.nameText.update();
       }
     });
@@ -59,11 +61,14 @@ export default class Player {
 
     if (!this.joined) return;
 
-    let input = (direction.x != 0 || direction.y != 0);
+    let input = direction.x != 0 || direction.y != 0;
 
     // Start the movement after input
     if (!this.moving && input) {
-      let movingPosition = {x: this.position.x + direction.x, y: this.position.y + direction.y};
+      let movingPosition = {
+        x: this.position.x + direction.x,
+        y: this.position.y + direction.y,
+      };
       let animation = this.updateDirection(direction);
 
       // Check colision
@@ -71,7 +76,7 @@ export default class Player {
 
       this.moving = true;
       this.movingPosition = movingPosition;
-      this.state.channel.push("move", {direction: animation});
+      this.state.channel.push("move", { direction: animation });
     }
 
     if (input || !this.inDestination()) {
@@ -85,7 +90,12 @@ export default class Player {
         let animation = this.updateDirection(direction);
 
         // Check colision
-        if (this.state.map.isBlocked(this.movingPosition.x + direction.x, this.movingPosition.y + direction.y)) {
+        if (
+          this.state.map.isBlocked(
+            this.movingPosition.x + direction.x,
+            this.movingPosition.y + direction.y
+          )
+        ) {
           return;
         }
 
@@ -93,7 +103,7 @@ export default class Player {
         this.movingPosition.y += direction.y;
 
         console.log("Position: ", this.position);
-        this.state.channel.push("move", {direction: animation});
+        this.state.channel.push("move", { direction: animation });
       }
       this.sprite.x += this.movingDistance() * this.direction.x;
       this.sprite.y += this.movingDistance() * this.direction.y;
@@ -108,7 +118,7 @@ export default class Player {
       }
       this.moving = false;
       this.sprite.animations.stop();
-      this.sprite.animations.play(this.getAnimation() + '_stand', 0, true);
+      this.sprite.animations.play(this.getAnimation() + "_stand", 0, true);
 
       this.fixPosition();
     }
@@ -128,26 +138,30 @@ export default class Player {
     if (this.direction.x < 0) return "w";
     if (this.direction.y > 0) return "s";
     if (this.direction.y < 0) return "n";
-    
+
     return "";
   }
 
   updateDirection(direction) {
     this.direction = direction;
-    this.sprite.animations.play(this.getAnimation() + '_move', 8, true);
+    this.sprite.animations.play(this.getAnimation() + "_move", 8, true);
     return this.getDirection();
   }
 
   movingDistance() {
-    let distance = field / Math.round(100000 / (2 * (this.speed - 1) + 180)) * (1000 / this.fps);
+    let distance =
+      (field / Math.round(100000 / (2 * (this.speed - 1) + 180))) *
+      (1000 / this.fps);
     return distance > field ? field : distance;
   }
 
   inDestination() {
     let epsilon = this.movingDistance();
 
-    return Math.abs(this.movingPosition.y * field - this.sprite.y) <= epsilon &&
-           Math.abs(this.movingPosition.x * field - this.sprite.x) <= epsilon;
+    return (
+      Math.abs(this.movingPosition.y * field - this.sprite.y) <= epsilon &&
+      Math.abs(this.movingPosition.x * field - this.sprite.x) <= epsilon
+    );
   }
 
   fixPosition() {
@@ -155,5 +169,4 @@ export default class Player {
     this.sprite.y = this.position.y * field;
     this.nameText.update();
   }
-
 }

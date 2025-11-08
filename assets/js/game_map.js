@@ -1,8 +1,7 @@
-import { mapSize } from "./globals"
-import MapTile from "./map_tile"
+import { mapSize } from "./globals";
+import MapTile from "./map_tile";
 
 export default class GameMap {
-
   constructor(state) {
     this.map = new Map();
     this.state = state;
@@ -31,7 +30,7 @@ export default class GameMap {
   getTile(x, y) {
     let tile = this.map.get(x * mapSize + y);
     if (!tile) tile = this.setTile(x, y);
-    return tile
+    return tile;
   }
 
   setTile(x, y) {
@@ -39,5 +38,4 @@ export default class GameMap {
     this.map.set(x * mapSize + y, tile);
     return tile;
   }
-
 }

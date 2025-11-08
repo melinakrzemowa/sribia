@@ -1,4 +1,4 @@
-import socket from "../socket"
+import socket from "../socket";
 
 export default class GameChannel {
   constructor() {
@@ -6,9 +6,14 @@ export default class GameChannel {
   }
 
   join() {
-    this.channel.join()
-      .receive("ok", resp => { console.log("Joined successfully", resp); })
-      .receive("error", resp => { console.log("Unable to join", resp) })
+    this.channel
+      .join()
+      .receive("ok", (resp) => {
+        console.log("Joined successfully", resp);
+      })
+      .receive("error", (resp) => {
+        console.log("Unable to join", resp);
+      });
   }
 
   on(event, callback) {
