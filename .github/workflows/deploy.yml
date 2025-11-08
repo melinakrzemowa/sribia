@@ -50,10 +50,10 @@ jobs:
         build-args: |
           VERSION=${{ steps.previoustag.outputs.tag }}
           VERSION_HASH=${{ steps.get_hash.outputs.HASH }}
-        # cache-from: |
-        #   type=registry,ref=registry.melinakrzemowa.pl/sribia:buildcache
-        #   type=registry,ref=registry.melinakrzemowa.pl/sribia:latest
-        # cache-to: type=registry,ref=registry.melinakrzemowa.pl/sribia:buildcache,mode=max
+        cache-from: |
+          type=registry,ref=registry.melinakrzemowa.pl/sribia:buildcache
+          type=registry,ref=registry.melinakrzemowa.pl/sribia:latest
+        cache-to: type=registry,ref=registry.melinakrzemowa.pl/sribia:buildcache,mode=max
 
     - name: Copy docker-compose.yml
       uses: appleboy/scp-action@master
