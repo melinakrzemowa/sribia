@@ -98,10 +98,6 @@ export default class MainState extends Phaser.State {
     this.stick.baseSprite.scale.setTo(0.5, 0.5);
     this.stick.stickSprite.scale.setTo(0.5, 0.5);
 
-    // Enable smoothing for joystick to prevent pixelation when scaled
-    this.stick.baseSprite.smoothed = true;
-    this.stick.stickSprite.smoothed = true;
-
     // Enable responsive scaling for all devices
     this.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
 

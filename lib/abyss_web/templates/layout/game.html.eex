@@ -56,8 +56,23 @@
         position: absolute;
         bottom: 60px;
         left: 10px;
-        color: white;
+        color: yellow;
         z-index: 10;
+        font-family: Verdana, Geneva, sans-serif;
+        font-weight: bold;
+        font-size: 12px;
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    #messages li {
+        margin-bottom: 5px;
+        transition: opacity 0.5s ease-out;
+    }
+
+    #messages li.fade-out {
+        opacity: 0;
     }
 
     #chat-input {
@@ -348,25 +363,33 @@
               fullscreenBtn.classList.add('hidden');
             }
 
-            // Show iOS install prompt after 3 seconds
-            setTimeout(function() {
-              if (iosInstallPrompt) {
-                iosInstallPrompt.classList.add('show');
-              }
-            }, 3000);
-
-            // Also show on first interaction
+            // Shared flag to prevent showing prompt multiple times
             let hasShownPrompt = false;
+
             function showInstallPrompt() {
               if (!hasShownPrompt && iosInstallPrompt) {
                 hasShownPrompt = true;
-                setTimeout(function() {
-                  iosInstallPrompt.classList.add('show');
-                }, 500);
-                document.removeEventListener('touchstart', showInstallPrompt);
+                iosInstallPrompt.classList.add('show');
+                // Remove event listener once we've shown the prompt
+                document.removeEventListener('touchstart', showInstallPromptOnTouch);
               }
             }
-            document.addEventListener('touchstart', showInstallPrompt);
+
+            function showInstallPromptOnTouch(e) {
+              // Don't show if user is clicking the dismiss button
+              if (e.target.closest('#ios-install-prompt')) {
+                return;
+              }
+              showInstallPrompt();
+            }
+
+            // Show iOS install prompt after 3 seconds
+            setTimeout(function() {
+              showInstallPrompt();
+            }, 3000);
+
+            // Also allow showing on first interaction (if 3 seconds hasn't passed yet)
+            document.addEventListener('touchstart', showInstallPromptOnTouch);
           } else {
             // In standalone mode - hide the prompt and fullscreen button
             if (iosInstallPrompt) {
