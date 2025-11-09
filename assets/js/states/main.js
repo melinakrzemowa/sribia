@@ -78,6 +78,10 @@ export default class MainState extends Phaser.State {
     // Window active in background
     this.stage.disableVisibilityChange = true;
 
+    // Enable pixel-perfect rendering for crisp sprites
+    Phaser.Canvas.setImageRenderingCrisp(this.game.canvas);
+    this.game.renderer.renderSession.roundPixels = true;
+
     // Performance tracking for sorting optimization
     this.performance = {
       lastGroupSize: 0,
