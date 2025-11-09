@@ -22,6 +22,12 @@ chatChannel.on("shout", (payload) => {
   }`;
   messagesContainer.appendChild(messageItem);
 
+  // Limit to 10 messages max - remove oldest if exceeded
+  const maxMessages = 10;
+  if (messagesContainer.children.length > maxMessages) {
+    messagesContainer.removeChild(messagesContainer.firstChild);
+  }
+
   // Auto-hide message after 1 minute
   setTimeout(() => {
     messageItem.classList.add("fade-out");
