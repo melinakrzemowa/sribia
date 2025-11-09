@@ -6,6 +6,7 @@ import Player from "../player";
 import UsersContainer from "../users_container";
 import MobileDetect from "mobile-detect";
 import items from "../data/items.json" assert { type: "json" };
+import RightPanelState from "./right_panel";
 
 export default class MainState extends Phaser.State {
   preload() {
@@ -103,7 +104,19 @@ export default class MainState extends Phaser.State {
       this.stick.enabled = false;
     }
 
-    this.world.setBounds(-field / 2, -field / 2, mapSize * 100, mapSize * 100);
+    this.world.setBounds(
+      -field / 2,
+      -field / 2,
+      mapSize * field,
+      mapSize * field
+    );
+
+    console.log(this.camera);
+
+    this.camera.width = field * 15;
+    this.camera.height = field * 11;
+    // this.camera.position = console.log(this);
+
     this.input.keyboard.addKeyCapture([
       Phaser.Keyboard.LEFT,
       Phaser.Keyboard.RIGHT,
@@ -129,6 +142,10 @@ export default class MainState extends Phaser.State {
     });
 
     this.channel.join();
+
+    // Initialize and create right panel
+    this.rightPanel = new RightPanelState(this.game, this);
+    this.rightPanel.create();
   }
 
   update() {
@@ -201,6 +218,11 @@ export default class MainState extends Phaser.State {
       });
       this.performance.lastGroupSize = currentGroupSize;
     }
+
+    // Update right panel
+    if (this.rightPanel) {
+      this.rightPanel.update();
+    }
   }
 
   render() {
@@ -221,6 +243,11 @@ export default class MainState extends Phaser.State {
       50,
       "#00ff00"
     );
+
+    // Render right panel
+    if (this.rightPanel) {
+      this.rightPanel.render();
+    }
   }
 
   octantToDirection() {
