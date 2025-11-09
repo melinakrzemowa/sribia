@@ -64,15 +64,21 @@
         list-style: none;
         padding: 0;
         margin: 0;
+        pointer-events: none;
     }
 
     #messages li {
         margin-bottom: 5px;
         transition: opacity 0.5s ease-out;
+        pointer-events: none;
     }
 
     #messages li.fade-out {
         opacity: 0;
+    }
+
+    #messages * {
+        pointer-events: none;
     }
 
     #chat-input {
