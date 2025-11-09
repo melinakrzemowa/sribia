@@ -9,9 +9,9 @@ export default class RightPanelState {
 
     // Player stats (placeholder values until we have real data)
     this.maxHealth = 100;
-    this.currentHealth = 100;
+    this.currentHealth = 70;
     this.maxMana = 50;
-    this.currentMana = 50;
+    this.currentMana = 30;
   }
 
   create() {
@@ -19,22 +19,17 @@ export default class RightPanelState {
     this.background = this.game.add.graphics(0, 0);
     this.background.fixedToCamera = true;
 
-    // Set brown color and draw rectangle
-    this.background.beginFill(0x8B4513); // Brown color
+    this.background.beginFill(0x808080);
     this.background.drawRect(this.panelX, 0, this.width, field * 11);
     this.background.endFill();
 
     // Create player name text
-    this.nameText = this.game.add.text(
-      this.panelX + 10,
-      20,
-      "",
-      {
-        font: "bold 14px Verdana, Arial, sans-serif",
-        fill: "#ffffff"
-      }
-    );
+    this.nameText = this.game.add.text(this.panelX + 10, 20, "", {
+      font: "bold 12px Verdana, Arial, sans-serif",
+      fill: "#ffffff",
+    });
     this.nameText.fixedToCamera = true;
+    console.log(this.nameText);
 
     // Create health bar background
     this.healthBarBg = this.game.add.graphics(0, 0);
@@ -48,15 +43,10 @@ export default class RightPanelState {
     this.healthBar.fixedToCamera = true;
 
     // Create health text
-    this.healthText = this.game.add.text(
-      this.panelX + 10,
-      52,
-      "",
-      {
-        font: "bold 11px Verdana, Arial, sans-serif",
-        fill: "#ffffff"
-      }
-    );
+    this.healthText = this.game.add.text(this.panelX + 10, 52, "", {
+      font: "bold 10px Verdana, Arial, sans-serif",
+      fill: "#ffffff",
+    });
     this.healthText.fixedToCamera = true;
 
     // Create mana bar background
@@ -71,15 +61,10 @@ export default class RightPanelState {
     this.manaBar.fixedToCamera = true;
 
     // Create mana text
-    this.manaText = this.game.add.text(
-      this.panelX + 10,
-      82,
-      "",
-      {
-        font: "bold 11px Verdana, Arial, sans-serif",
-        fill: "#ffffff"
-      }
-    );
+    this.manaText = this.game.add.text(this.panelX + 10, 82, "", {
+      font: "bold 10px Verdana, Arial, sans-serif",
+      fill: "#ffffff",
+    });
     this.manaText.fixedToCamera = true;
 
     this.updateBars();
