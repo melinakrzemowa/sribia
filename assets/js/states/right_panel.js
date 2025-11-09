@@ -29,7 +29,6 @@ export default class RightPanelState {
       fill: "#ffffff",
     });
     this.nameText.fixedToCamera = true;
-    console.log(this.nameText);
 
     // Create health bar background
     this.healthBarBg = this.game.add.graphics(0, 0);

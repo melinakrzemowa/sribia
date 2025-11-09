@@ -91,8 +91,16 @@ export default class MainState extends Phaser.State {
     // Add Joystick
     this.pad = this.game.plugins.add(Phaser.VirtualJoystick);
 
-    this.stick = this.pad.addStick(0, 0, 200, "generic");
+    this.stick = this.pad.addStick(0, 0, 100, "generic");
     this.stick.alignBottomLeft(0);
+
+    // Scale down the joystick to half size
+    this.stick.baseSprite.scale.setTo(0.5, 0.5);
+    this.stick.stickSprite.scale.setTo(0.5, 0.5);
+
+    // Enable smoothing for joystick to prevent pixelation when scaled
+    this.stick.baseSprite.smoothed = true;
+    this.stick.stickSprite.smoothed = true;
 
     // Enable responsive scaling for all devices
     this.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
@@ -111,11 +119,8 @@ export default class MainState extends Phaser.State {
       mapSize * field
     );
 
-    console.log(this.camera);
-
     this.camera.width = field * 15;
     this.camera.height = field * 11;
-    // this.camera.position = console.log(this);
 
     this.input.keyboard.addKeyCapture([
       Phaser.Keyboard.LEFT,
