@@ -6,6 +6,7 @@ import Player from "../player";
 import UsersContainer from "../users_container";
 import MobileDetect from "mobile-detect";
 import items from "../data/items.json" assert { type: "json" };
+import RightPanelState from "./right_panel";
 
 export default class MainState extends Phaser.State {
   preload() {
@@ -90,8 +91,12 @@ export default class MainState extends Phaser.State {
     // Add Joystick
     this.pad = this.game.plugins.add(Phaser.VirtualJoystick);
 
-    this.stick = this.pad.addStick(0, 0, 200, "generic");
+    this.stick = this.pad.addStick(0, 0, 100, "generic");
     this.stick.alignBottomLeft(0);
+
+    // Scale down the joystick to half size
+    this.stick.baseSprite.scale.setTo(0.5, 0.5);
+    this.stick.stickSprite.scale.setTo(0.5, 0.5);
 
     // Enable responsive scaling for all devices
     this.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
@@ -103,7 +108,16 @@ export default class MainState extends Phaser.State {
       this.stick.enabled = false;
     }
 
-    this.world.setBounds(-field / 2, -field / 2, mapSize * 100, mapSize * 100);
+    this.world.setBounds(
+      -field / 2,
+      -field / 2,
+      mapSize * field,
+      mapSize * field
+    );
+
+    this.camera.width = field * 15;
+    this.camera.height = field * 11;
+
     this.input.keyboard.addKeyCapture([
       Phaser.Keyboard.LEFT,
       Phaser.Keyboard.RIGHT,
@@ -129,6 +143,10 @@ export default class MainState extends Phaser.State {
     });
 
     this.channel.join();
+
+    // Initialize and create right panel
+    this.rightPanel = new RightPanelState(this.game, this);
+    this.rightPanel.create();
   }
 
   update() {
@@ -201,6 +219,11 @@ export default class MainState extends Phaser.State {
       });
       this.performance.lastGroupSize = currentGroupSize;
     }
+
+    // Update right panel
+    if (this.rightPanel) {
+      this.rightPanel.update();
+    }
   }
 
   render() {
@@ -221,6 +244,11 @@ export default class MainState extends Phaser.State {
       50,
       "#00ff00"
     );
+
+    // Render right panel
+    if (this.rightPanel) {
+      this.rightPanel.render();
+    }
   }
 
   octantToDirection() {

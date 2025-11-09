@@ -102,7 +102,6 @@ export default class Player {
         this.movingPosition.x += direction.x;
         this.movingPosition.y += direction.y;
 
-        console.log("Position: ", this.position);
         this.state.channel.push("move", { direction: animation });
       }
       this.sprite.x += this.movingDistance() * this.direction.x;
@@ -113,9 +112,6 @@ export default class Player {
       this.position.x = this.movingPosition.x;
       this.position.y = this.movingPosition.y;
 
-      if (this.moving) {
-        console.log("Position: ", this.position);
-      }
       this.moving = false;
       this.sprite.animations.stop();
       this.sprite.animations.play(this.getAnimation() + "_stand", 0, true);
