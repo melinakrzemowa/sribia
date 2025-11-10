@@ -11,7 +11,7 @@ defmodule AbyssWeb.Endpoint do
     at: "/",
     from: :abyss,
     gzip: false,
-    only: ~w(css fonts images sprites js vendor favicon.ico robots.txt)
+    only: ~w(css fonts images sprites js vendor favicon.ico robots.txt manifest.json)
 
   # Code reloading can be explicitly enabled under the
   # :code_reloader configuration of your endpoint.
