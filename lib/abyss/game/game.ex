@@ -15,6 +15,10 @@ defmodule Abyss.Game do
     update_user_position(user, position)
   end
 
+  def leave(user_id) do
+    Board.delete(:user, user_id)
+  end
+
   def get_fields({x, y}) do
     Board.get_fields({x, y}, {8, 8})
     |> Enum.map(fn {position, field} -> {position, load_field(field)} end)

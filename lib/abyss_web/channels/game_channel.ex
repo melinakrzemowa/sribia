@@ -1,10 +1,23 @@
 defmodule AbyssWeb.GameChannel do
   use AbyssWeb, :channel
+  require Logger
   alias Abyss.Game
+  alias Abyss.UserSession
   alias Abyss.Accounts.User
 
   def join("game:lobby", _payload, socket) do
     if authorized?(socket) do
+      case UserSession.register_connection(socket.assigns[:user_id], self()) do
+        {:ok, :replaced_session} ->
+          Logger.info("User #{socket.assigns[:user_id]} connected from new client, disconnecting old client")
+
+        {:ok, _} ->
+          :ok
+
+        error ->
+          Logger.error("Failed to register user session: #{inspect(error)}")
+      end
+
       user = Game.join(socket.assigns[:user_id])
       Process.send_after(self(), {:joined, user}, 0)
       {:ok, socket}
@@ -27,6 +40,18 @@ defmodule AbyssWeb.GameChannel do
     end)
 
     {:noreply, socket}
+  end
+
+  def handle_info(:force_disconnect, socket) do
+    push(socket, "force_disconnect", %{
+      reason: "You have been disconnected because you connected from another client"
+    })
+
+    # Mark this socket as force disconnected so terminate knows not to remove from board
+    socket = assign(socket, :force_disconnected, true)
+
+    # Close the socket connection
+    {:stop, :normal, socket}
   end
 
   defp push_object(socket, _position, %User{} = user) do
@@ -64,6 +89,20 @@ defmodule AbyssWeb.GameChannel do
       push(socket, "user_joined", msg)
       {:noreply, socket}
     end
+  end
+
+  # Handle channel termination (disconnect)
+  def terminate(_reason, socket) do
+    if socket.assigns[:user_id] do
+      # Only remove user from board and broadcast if this is a regular disconnect
+      unless socket.assigns[:force_disconnected] do
+        Game.leave(socket.assigns[:user_id])
+        UserSession.unregister_connection(socket.assigns[:user_id], self())
+        broadcast(socket, "user_left", %{user_id: socket.assigns[:user_id]})
+      end
+    end
+
+    :ok
   end
 
   # Add authorization logic here as required.
