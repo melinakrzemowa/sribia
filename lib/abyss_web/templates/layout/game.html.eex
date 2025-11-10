@@ -245,6 +245,65 @@
         cursor: pointer;
     }
 
+    /* Disconnected overlay */
+    #disconnect-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        height: 100dvh;
+        background: rgba(0, 0, 0, 0.95);
+        z-index: 20000;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-family: Arial, sans-serif;
+        text-align: center;
+        padding: 20px;
+        box-sizing: border-box;
+    }
+
+    #disconnect-overlay.show {
+        display: flex;
+    }
+
+    #disconnect-overlay h2 {
+        font-size: 28px;
+        margin: 0 0 20px 0;
+        color: #ff4444;
+    }
+
+    #disconnect-overlay p {
+        font-size: 16px;
+        margin: 0 0 30px 0;
+        opacity: 0.9;
+        max-width: 400px;
+        line-height: 1.5;
+    }
+
+    #disconnect-overlay button {
+        background: #ff4444;
+        border: none;
+        color: white;
+        padding: 15px 40px;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background 0.3s ease;
+    }
+
+    #disconnect-overlay button:hover {
+        background: #ff6666;
+    }
+
+    #disconnect-overlay button:active {
+        transform: scale(0.95);
+    }
+
     /* Ensure game scales properly in landscape */
     @media screen and (orientation: landscape) {
         #game canvas {
@@ -279,6 +338,13 @@
         then <strong>"Add to Home Screen"</strong>
       </div>
       <button onclick="document.getElementById('ios-install-prompt').classList.remove('show')">Got it</button>
+    </div>
+
+    <!-- Disconnect overlay -->
+    <div id="disconnect-overlay">
+      <h2>Disconnected</h2>
+      <p id="disconnect-message">You have been disconnected from the game.</p>
+      <button id="reconnect-btn">Reconnect</button>
     </div>
 
     <%= @inner_content %>
