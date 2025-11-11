@@ -90,6 +90,27 @@ export default class UsersContainer {
     return this.container[user_id];
   }
 
+  remove(user_id) {
+    const user = this.container[user_id];
+    if (user) {
+      // Remove from map
+      this.state.map.deleteObject(user.position.x, user.position.y, user);
+
+      // Destroy sprite and nameText
+      if (user.sprite) {
+        user.sprite.destroy();
+      }
+      if (user.nameText) {
+        user.nameText.destroy();
+      }
+
+      // Remove from container
+      delete this.container[user_id];
+
+      console.log(`Removed user ${user_id} from the board`);
+    }
+  }
+
   move(payload) {
     let x = payload.x;
     let y = payload.y;

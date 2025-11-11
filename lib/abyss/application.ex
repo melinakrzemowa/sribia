@@ -10,7 +10,9 @@ defmodule Abyss.Application do
       Abyss.Repo,
       {Phoenix.PubSub, name: Abyss.PubSub},
       AbyssWeb.Endpoint,
-      Abyss.Board
+      Abyss.Board,
+      {Registry, keys: :unique, name: Abyss.UserSessionRegistry},
+      Abyss.UserSessionSupervisor
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
