@@ -407,13 +407,14 @@
             console.log('Running in standalone mode');
           }
         } else {
-          // Non-iOS: Initialize fullscreen button
-          if (fullscreenBtn) {
-            fullscreenBtn.addEventListener('click', requestFullscreen);
-          }
-
-          // Auto-request fullscreen on first user interaction (non-iOS mobile)
+          // Non-iOS: Only show fullscreen button on mobile (Android)
           if (isMobile()) {
+            // Initialize fullscreen button for mobile
+            if (fullscreenBtn) {
+              fullscreenBtn.addEventListener('click', requestFullscreen);
+            }
+
+            // Auto-request fullscreen on first user interaction
             let hasInteracted = false;
 
             function attemptFullscreen() {
@@ -431,6 +432,11 @@
 
             document.addEventListener('touchstart', attemptFullscreen);
             document.addEventListener('click', attemptFullscreen);
+          } else {
+            // Hide fullscreen button on desktop browsers
+            if (fullscreenBtn) {
+              fullscreenBtn.classList.add('hidden');
+            }
           }
         }
 
