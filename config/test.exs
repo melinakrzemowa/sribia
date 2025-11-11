@@ -17,3 +17,5 @@ config :abyss, Abyss.Repo,
   database: "abyss_test",
   hostname: "localhost",
   pool: Ecto.Adapters.SQL.Sandbox
+
+config :abyss, user_session_cleanup_time: 1_000

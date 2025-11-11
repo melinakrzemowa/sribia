@@ -12,6 +12,8 @@ defmodule Abyss.UserSession do
   use GenServer
   require Logger
 
+  @cleanup_time Application.compile_env(:abyss, :user_session_cleanup_time, 10_000)
+
   defstruct [
     :user_id,
     :channel_pid,
@@ -176,6 +178,6 @@ defmodule Abyss.UserSession do
   end
 
   defp schedule_session_cleanup do
-    Process.send_after(self(), :session_cleanup, 10_000)
+    Process.send_after(self(), :session_cleanup, @cleanup_time)
   end
 end
