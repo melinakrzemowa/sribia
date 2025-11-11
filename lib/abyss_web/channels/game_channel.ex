@@ -28,7 +28,7 @@ defmodule AbyssWeb.GameChannel do
 
   def handle_info({:joined, user}, socket) do
     push(socket, "joined", %{user_id: user.id, name: user.name, speed: user.speed, x: user.x, y: user.y})
-    broadcast(socket, "user_joined", %{user_id: user.id, name: user.name, speed: user.speed, x: user.x, y: user.y})
+    broadcast(socket, "user_object", %{user_id: user.id, name: user.name, speed: user.speed, x: user.x, y: user.y})
 
     map_data = Game.get_map_data(user.x, user.y, 7)
     push(socket, "map_data", %{map: map_data})
@@ -55,7 +55,9 @@ defmodule AbyssWeb.GameChannel do
   end
 
   defp push_object(socket, _position, %User{} = user) do
-    push(socket, "user_joined", %{user_id: user.id, name: user.name, speed: user.speed, x: user.x, y: user.y})
+    if socket.assigns[:user_id] != user.id do
+      push(socket, "user_object", %{user_id: user.id, name: user.name, speed: user.speed, x: user.x, y: user.y})
+    end
   end
 
   defp push_object(_socket, _pos, _object), do: :ok
@@ -70,6 +72,12 @@ defmodule AbyssWeb.GameChannel do
         map_data = Game.get_map_data(x, y, 7)
         push(socket, "map_data", %{map: map_data})
 
+        Enum.each(Game.get_fields({x, y}), fn {position, list} ->
+          Enum.each(list, fn object ->
+            push_object(socket, position, object)
+          end)
+        end)
+
         broadcast(socket, "move", %{x: x, y: y, user_id: socket.assigns[:user_id], move_time: move_time})
         {:noreply, socket}
 
@@ -80,13 +88,13 @@ defmodule AbyssWeb.GameChannel do
     end
   end
 
-  intercept ["user_joined"]
+  intercept ["user_object"]
 
-  def handle_out("user_joined", msg, socket) do
+  def handle_out("user_object", msg, socket) do
     if socket.assigns[:user_id] == msg.user_id do
       {:noreply, socket}
     else
-      push(socket, "user_joined", msg)
+      push(socket, "user_object", msg)
       {:noreply, socket}
     end
   end
