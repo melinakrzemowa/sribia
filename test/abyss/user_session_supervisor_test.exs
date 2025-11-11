@@ -4,6 +4,8 @@ defmodule Abyss.UserSessionSupervisorTest do
   alias Abyss.{UserSession, UserSessionSupervisor}
 
   setup do
+    IO.inspect(UserSessionSupervisor.list_sessions())
+
     # Generate unique user_id for each test
     user_id = System.unique_integer([:positive])
     {:ok, pid} = UserSessionSupervisor.start_session(user_id)
