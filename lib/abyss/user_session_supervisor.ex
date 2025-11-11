@@ -23,6 +23,16 @@ defmodule Abyss.UserSessionSupervisor do
   end
 
   @doc """
+  Terminates a UserSession for the given user_id.
+  """
+  def stop_session(user_id) do
+    case Abyss.UserSession.get_session(user_id) do
+      nil -> :ok
+      pid -> DynamicSupervisor.terminate_child(__MODULE__, pid)
+    end
+  end
+
+  @doc """
   Lists all active UserSession PIDs.
   """
   def list_sessions do

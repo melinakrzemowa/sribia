@@ -9,15 +9,8 @@ defmodule Abyss.UserSessionTest do
     {:ok, pid} = UserSession.start_link(user_id)
 
     on_exit(fn ->
-      # Ensure session is cleaned up
-      case UserSession.get_session(user_id) do
-        nil ->
-          :ok
-
-        pid ->
-          if Process.alive?(pid) do
-            GenServer.stop(pid, :shutdown)
-          end
+      if Process.alive?(pid) do
+        GenServer.stop(pid, :shutdown)
       end
     end)
 

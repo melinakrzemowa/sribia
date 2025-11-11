@@ -46,6 +46,16 @@ defmodule Abyss.UserSession do
   end
 
   @doc """
+  Returns the PID of the session process for the given user_id, or nil if there is no session.
+  """
+  def get_session(user_id) do
+    case Registry.lookup(Abyss.UserSessionRegistry, user_id) do
+      [{pid, _}] -> pid
+      [] -> nil
+    end
+  end
+
+  @doc """
   Registers a channel connection for this user.
   Returns {:ok, :new_session} or {:ok, :replaced_session}
   """
@@ -80,13 +90,6 @@ defmodule Abyss.UserSession do
 
       pid ->
         {:ok, pid}
-    end
-  end
-
-  defp get_session(user_id) do
-    case Registry.lookup(Abyss.UserSessionRegistry, user_id) do
-      [{pid, _}] -> pid
-      [] -> nil
     end
   end
 
