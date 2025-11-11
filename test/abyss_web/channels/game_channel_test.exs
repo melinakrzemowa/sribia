@@ -4,6 +4,7 @@ defmodule AbyssWeb.GameChannelTest do
   alias Abyss.Accounts
   alias Abyss.Game
   alias Abyss.UserSession
+  alias Abyss.UserSessionSupervisor
   alias AbyssWeb.GameChannel
   alias AbyssWeb.UserSocket
 
@@ -18,7 +19,10 @@ defmodule AbyssWeb.GameChannelTest do
 
     assert_broadcast "user_joined", %{user_id: ^user_id, x: 32097, y: 32219}
 
-    on_exit(fn -> Game.leave(user_id) end)
+    on_exit(fn ->
+      Game.leave(user_id)
+      UserSessionSupervisor.stop_session(user_id)
+    end)
 
     {:ok, socket: socket, user: user}
   end
