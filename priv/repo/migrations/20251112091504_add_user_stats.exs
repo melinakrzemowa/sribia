@@ -16,15 +16,19 @@ defmodule Abyss.Repo.Migrations.AddUserStats do
       # Z Position (in addition to existing x, y)
       add :z, :integer, default: 0
 
-      # Skills as JSON map with level and ticks for each skill
-      add :skills, :map, default: %{
-        "melee_fighting" => %{"level" => 0, "ticks" => 0},
-        "distance_fighting" => %{"level" => 0, "ticks" => 0},
-        "shielding" => %{"level" => 0, "ticks" => 0},
-        "magic_level" => %{"level" => 0, "ticks" => 0},
-        "crafting" => %{"level" => 0, "ticks" => 0},
-        "fishing" => %{"level" => 0, "ticks" => 0}
-      }
+      # Skills - individual fields for each skill
+      add :melee_fighting_level, :integer, default: 0
+      add :melee_fighting_ticks, :integer, default: 0
+      add :distance_fighting_level, :integer, default: 0
+      add :distance_fighting_ticks, :integer, default: 0
+      add :shielding_level, :integer, default: 0
+      add :shielding_ticks, :integer, default: 0
+      add :magic_level_level, :integer, default: 0
+      add :magic_level_ticks, :integer, default: 0
+      add :crafting_level, :integer, default: 0
+      add :crafting_ticks, :integer, default: 0
+      add :fishing_level, :integer, default: 0
+      add :fishing_ticks, :integer, default: 0
     end
   end
 end

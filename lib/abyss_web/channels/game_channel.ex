@@ -78,13 +78,31 @@ defmodule AbyssWeb.GameChannel do
       max_mana: user.max_mana || 50,
       level: user.level || 1,
       experience: user.experience || 0,
-      skills: user.skills || %{
-        "melee_fighting" => %{"level" => 0, "ticks" => 0},
-        "distance_fighting" => %{"level" => 0, "ticks" => 0},
-        "shielding" => %{"level" => 0, "ticks" => 0},
-        "magic_level" => %{"level" => 0, "ticks" => 0},
-        "crafting" => %{"level" => 0, "ticks" => 0},
-        "fishing" => %{"level" => 0, "ticks" => 0}
+      skills: %{
+        "melee_fighting" => %{
+          "level" => user.melee_fighting_level || 0,
+          "ticks" => user.melee_fighting_ticks || 0
+        },
+        "distance_fighting" => %{
+          "level" => user.distance_fighting_level || 0,
+          "ticks" => user.distance_fighting_ticks || 0
+        },
+        "shielding" => %{
+          "level" => user.shielding_level || 0,
+          "ticks" => user.shielding_ticks || 0
+        },
+        "magic_level" => %{
+          "level" => user.magic_level_level || 0,
+          "ticks" => user.magic_level_ticks || 0
+        },
+        "crafting" => %{
+          "level" => user.crafting_level || 0,
+          "ticks" => user.crafting_ticks || 0
+        },
+        "fishing" => %{
+          "level" => user.fishing_level || 0,
+          "ticks" => user.fishing_ticks || 0
+        }
       }
     }
   end
