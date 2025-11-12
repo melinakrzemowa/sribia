@@ -7,7 +7,7 @@ export default class Player {
     this.id = window.user_id;
     this.type = "character";
 
-    this.position = { x: 0, y: 0 };
+    this.position = { x: 0, y: 0, z: 0 };
     this.movingPosition = { x: 0, y: 0 };
     this.direction = { x: 0, y: 0 };
 
@@ -18,6 +18,22 @@ export default class Player {
     this.nameText = null;
     this.moving = false;
     this.fps = 60;
+
+    // Stats
+    this.currentHealth = 100;
+    this.maxHealth = 100;
+    this.currentMana = 50;
+    this.maxMana = 50;
+    this.level = 1;
+    this.experience = 0;
+    this.skills = {
+      melee_fighting: { level: 0, ticks: 0 },
+      distance_fighting: { level: 0, ticks: 0 },
+      shielding: { level: 0, ticks: 0 },
+      magic_level: { level: 0, ticks: 0 },
+      crafting: { level: 0, ticks: 0 },
+      fishing: { level: 0, ticks: 0 }
+    };
 
     this.state.channel.on("joined", (payload) => {
       // reset state on reconnect
@@ -30,6 +46,20 @@ export default class Player {
 
       this.movingPosition.x = this.position.x = payload.x;
       this.movingPosition.y = this.position.y = payload.y;
+      this.position.z = payload.z || 0;
+
+      // Update stats
+      this.currentHealth = payload.current_health || 100;
+      this.maxHealth = payload.max_health || 100;
+      this.currentMana = payload.current_mana || 50;
+      this.maxMana = payload.max_mana || 50;
+      this.level = payload.level || 1;
+      this.experience = payload.experience || 0;
+
+      // Update skills
+      if (payload.skills) {
+        this.skills = payload.skills;
+      }
 
       this.sprite = this.state.users.createUserSprite(payload);
       this.sprite.gameObject = this;
