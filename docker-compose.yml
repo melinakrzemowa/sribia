@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: sribia
   web:
-    image: registry.melinakrzemowa.pl/sribia:${VERSION}
+    image: ghcr.io/melinakrzemowa/sribia:${VERSION}
     restart: unless-stopped
     environment:
       SECRET_KEY_BASE: ${SECRET_KEY_BASE}
