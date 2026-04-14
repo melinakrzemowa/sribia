@@ -27,8 +27,9 @@ defmodule AbyssWeb.GameChannel do
   end
 
   def handle_info({:joined, user}, socket) do
-    push(socket, "joined", %{user_id: user.id, name: user.name, speed: user.speed, x: user.x, y: user.y})
-    broadcast(socket, "user_object", %{user_id: user.id, name: user.name, speed: user.speed, x: user.x, y: user.y})
+    user_data = serialize_user(user)
+    push(socket, "joined", user_data)
+    broadcast(socket, "user_object", user_data)
 
     map_data = Game.get_map_data(user.x, user.y, 7)
     push(socket, "map_data", %{map: map_data})
@@ -56,11 +57,55 @@ defmodule AbyssWeb.GameChannel do
 
   defp push_object(socket, _position, %User{} = user) do
     if socket.assigns[:user_id] != user.id do
-      push(socket, "user_object", %{user_id: user.id, name: user.name, speed: user.speed, x: user.x, y: user.y})
+      push(socket, "user_object", serialize_user(user))
     end
   end
 
   defp push_object(_socket, _pos, _object), do: :ok
+
+  # Serialize user data to send to frontend
+  defp serialize_user(user) do
+    %{
+      user_id: user.id,
+      name: user.name,
+      speed: user.speed,
+      x: user.x,
+      y: user.y,
+      z: user.z || 0,
+      current_health: user.current_health || 100,
+      max_health: user.max_health || 100,
+      current_mana: user.current_mana || 50,
+      max_mana: user.max_mana || 50,
+      level: user.level || 1,
+      experience: user.experience || 0,
+      skills: %{
+        "melee_fighting" => %{
+          "level" => user.melee_fighting_level || 0,
+          "ticks" => user.melee_fighting_ticks || 0
+        },
+        "distance_fighting" => %{
+          "level" => user.distance_fighting_level || 0,
+          "ticks" => user.distance_fighting_ticks || 0
+        },
+        "shielding" => %{
+          "level" => user.shielding_level || 0,
+          "ticks" => user.shielding_ticks || 0
+        },
+        "magic_level" => %{
+          "level" => user.magic_level_level || 0,
+          "ticks" => user.magic_level_ticks || 0
+        },
+        "crafting" => %{
+          "level" => user.crafting_level || 0,
+          "ticks" => user.crafting_ticks || 0
+        },
+        "fishing" => %{
+          "level" => user.fishing_level || 0,
+          "ticks" => user.fishing_ticks || 0
+        }
+      }
+    }
+  end
 
   # It is also common to receive messages from the client and
   # broadcast to everyone in the current topic (game:lobby).
