@@ -28,6 +28,8 @@ defmodule AbyssWeb.GameChannelTest do
   end
 
   test "moves on board", %{socket: socket, user: %{id: user_id}} do
+    # Wait for move cooldown to expire after join (join sets last_move)
+    Process.sleep(50)
     push(socket, "move", %{"direction" => "s"})
     assert_broadcast "move", %{user_id: ^user_id, x: 32097, y: 32220}
   end
