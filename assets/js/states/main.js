@@ -100,12 +100,12 @@ export default class MainState extends Phaser.State {
     // Add Joystick
     this.pad = this.game.plugins.add(Phaser.VirtualJoystick);
 
-    this.stick = this.pad.addStick(0, 0, Math.round(100 * displayScale), "generic");
+    // Joystick scaled by dpr to maintain consistent CSS size (~100px diameter)
+    this.stick = this.pad.addStick(0, 0, Math.round(100 * dpr), "generic");
     this.stick.alignBottomLeft(0);
 
-    // Scale the joystick relative to display
-    this.stick.baseSprite.scale.setTo(0.5 * displayScale, 0.5 * displayScale);
-    this.stick.stickSprite.scale.setTo(0.5 * displayScale, 0.5 * displayScale);
+    this.stick.baseSprite.scale.setTo(0.5 * dpr, 0.5 * dpr);
+    this.stick.stickSprite.scale.setTo(0.5 * dpr, 0.5 * dpr);
 
     // SHOW_ALL scales the canvas to fill the parent while maintaining aspect ratio.
     // Since game dimensions = viewport * dpr, the scale factor is always 1/dpr,
