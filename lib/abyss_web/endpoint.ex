@@ -13,6 +13,10 @@ defmodule AbyssWeb.Endpoint do
     gzip: false,
     only: ~w(css fonts images sprites js vendor favicon.ico robots.txt manifest.json)
 
+  if Mix.env() == :dev do
+    plug Tidewave
+  end
+
   # Code reloading can be explicitly enabled under the
   # :code_reloader configuration of your endpoint.
   if code_reloading? do

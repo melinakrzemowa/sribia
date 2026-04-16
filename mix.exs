@@ -52,7 +52,8 @@ defmodule Abyss.Mixfile do
       {:cachex, "~> 4.0"},
       {:unzip, "~> 0.12"},
       {:phoenix_live_view, "~> 1.0"},
-      {:plug_cowboy, "~> 2.7"}
+      {:plug_cowboy, "~> 2.7"},
+      {:tidewave, "~> 0.5", only: :dev}
     ]
   end
 
