@@ -1,4 +1,4 @@
-import { mapSize, field, size, scale } from "../globals";
+import { mapSize, field, size, scale, displayScale, panelWidth } from "../globals";
 
 import GameMap from "../game_map";
 import GameChannel from "../channels/game_channel";
@@ -88,15 +88,19 @@ export default class MainState extends Phaser.State {
       lastGroupSize: 0,
     };
 
+    // Set debug font to match display scale
+    this.game.debug.font = `${Math.round(14 * displayScale)}px Courier`;
+    this.game.debug.lineHeight = Math.round(16 * displayScale);
+
     // Add Joystick
     this.pad = this.game.plugins.add(Phaser.VirtualJoystick);
 
-    this.stick = this.pad.addStick(0, 0, 100, "generic");
+    this.stick = this.pad.addStick(0, 0, Math.round(100 * displayScale), "generic");
     this.stick.alignBottomLeft(0);
 
-    // Scale down the joystick to half size
-    this.stick.baseSprite.scale.setTo(0.5, 0.5);
-    this.stick.stickSprite.scale.setTo(0.5, 0.5);
+    // Scale the joystick relative to display
+    this.stick.baseSprite.scale.setTo(0.5 * displayScale, 0.5 * displayScale);
+    this.stick.stickSprite.scale.setTo(0.5 * displayScale, 0.5 * displayScale);
 
     // Enable responsive scaling for all devices
     this.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
@@ -232,11 +236,12 @@ export default class MainState extends Phaser.State {
   }
 
   render() {
-    this.game.debug.text(this.time.fps || "--", 2, 14, "#00ff00");
+    const ds = displayScale;
+    this.game.debug.text(this.time.fps || "--", 2, Math.round(14 * ds), "#00ff00");
     this.game.debug.text(
       `x: ${this.player.position.x} y: ${this.player.position.y}`,
       2,
-      32,
+      Math.round(32 * ds),
       "#00ff00"
     );
 
@@ -246,7 +251,7 @@ export default class MainState extends Phaser.State {
     this.game.debug.text(
       `Sprites - World: ${worldSpriteCount} | Group: ${groupSpriteCount}`,
       2,
-      50,
+      Math.round(50 * ds),
       "#00ff00"
     );
 

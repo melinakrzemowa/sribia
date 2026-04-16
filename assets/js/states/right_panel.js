@@ -1,11 +1,19 @@
-import { field } from "../globals";
+import { field, displayScale, panelWidth } from "../globals";
 
 export default class RightPanelState {
   constructor(game, mainState) {
     this.game = game;
     this.mainState = mainState;
-    this.width = 200;
+    this.width = panelWidth;
     this.panelX = field * 15;
+
+    // Scaled layout values
+    this.margin = Math.round(10 * displayScale);
+    this.barWidth = Math.round(180 * displayScale);
+    this.barHeight = Math.round(20 * displayScale);
+    this.nameY = Math.round(20 * displayScale);
+    this.healthY = Math.round(50 * displayScale);
+    this.manaY = Math.round(80 * displayScale);
 
     // Player stats (placeholder values until we have real data)
     this.maxHealth = 100;
@@ -15,17 +23,20 @@ export default class RightPanelState {
   }
 
   create() {
+    const px = this.panelX;
+    const m = this.margin;
+
     // Create a fixed graphics object for the brown background
     this.background = this.game.add.graphics(0, 0);
     this.background.fixedToCamera = true;
 
     this.background.beginFill(0x808080);
-    this.background.drawRect(this.panelX, 0, this.width, field * 11);
+    this.background.drawRect(px, 0, this.width, field * 11);
     this.background.endFill();
 
     // Create player name text
-    this.nameText = this.game.add.text(this.panelX + 10, 20, "", {
-      font: "bold 12px Verdana, Arial, sans-serif",
+    this.nameText = this.game.add.text(px + m, this.nameY, "", {
+      font: `bold ${Math.round(12 * displayScale)}px Verdana, Arial, sans-serif`,
       fill: "#ffffff",
     });
     this.nameText.fixedToCamera = true;
@@ -34,7 +45,7 @@ export default class RightPanelState {
     this.healthBarBg = this.game.add.graphics(0, 0);
     this.healthBarBg.fixedToCamera = true;
     this.healthBarBg.beginFill(0x333333);
-    this.healthBarBg.drawRect(this.panelX + 10, 50, 180, 20);
+    this.healthBarBg.drawRect(px + m, this.healthY, this.barWidth, this.barHeight);
     this.healthBarBg.endFill();
 
     // Create health bar fill
@@ -42,8 +53,8 @@ export default class RightPanelState {
     this.healthBar.fixedToCamera = true;
 
     // Create health text
-    this.healthText = this.game.add.text(this.panelX + 10, 52, "", {
-      font: "bold 10px Verdana, Arial, sans-serif",
+    this.healthText = this.game.add.text(px + m, this.healthY + Math.round(2 * displayScale), "", {
+      font: `bold ${Math.round(10 * displayScale)}px Verdana, Arial, sans-serif`,
       fill: "#ffffff",
     });
     this.healthText.fixedToCamera = true;
@@ -52,7 +63,7 @@ export default class RightPanelState {
     this.manaBarBg = this.game.add.graphics(0, 0);
     this.manaBarBg.fixedToCamera = true;
     this.manaBarBg.beginFill(0x333333);
-    this.manaBarBg.drawRect(this.panelX + 10, 80, 180, 20);
+    this.manaBarBg.drawRect(px + m, this.manaY, this.barWidth, this.barHeight);
     this.manaBarBg.endFill();
 
     // Create mana bar fill
@@ -60,8 +71,8 @@ export default class RightPanelState {
     this.manaBar.fixedToCamera = true;
 
     // Create mana text
-    this.manaText = this.game.add.text(this.panelX + 10, 82, "", {
-      font: "bold 10px Verdana, Arial, sans-serif",
+    this.manaText = this.game.add.text(px + m, this.manaY + Math.round(2 * displayScale), "", {
+      font: `bold ${Math.round(10 * displayScale)}px Verdana, Arial, sans-serif`,
       fill: "#ffffff",
     });
     this.manaText.fixedToCamera = true;
@@ -77,16 +88,16 @@ export default class RightPanelState {
     // Update health bar
     this.healthBar.clear();
     this.healthBar.beginFill(0xff0000); // Red
-    const healthWidth = (this.currentHealth / this.maxHealth) * 180;
-    this.healthBar.drawRect(this.panelX + 10, 50, healthWidth, 20);
+    const healthWidth = (this.currentHealth / this.maxHealth) * this.barWidth;
+    this.healthBar.drawRect(this.panelX + this.margin, this.healthY, healthWidth, this.barHeight);
     this.healthBar.endFill();
     this.healthText.text = `HP: ${this.currentHealth}/${this.maxHealth}`;
 
     // Update mana bar
     this.manaBar.clear();
     this.manaBar.beginFill(0x0000ff); // Blue
-    const manaWidth = (this.currentMana / this.maxMana) * 180;
-    this.manaBar.drawRect(this.panelX + 10, 80, manaWidth, 20);
+    const manaWidth = (this.currentMana / this.maxMana) * this.barWidth;
+    this.manaBar.drawRect(this.panelX + this.margin, this.manaY, manaWidth, this.barHeight);
     this.manaBar.endFill();
     this.manaText.text = `MP: ${this.currentMana}/${this.maxMana}`;
   }
