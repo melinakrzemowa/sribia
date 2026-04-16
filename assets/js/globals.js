@@ -33,11 +33,12 @@ let scale = field / size;
 let displayScale = field / BASE_FIELD;
 
 // Recalculate field/scale for a new viewport size. Updates the live exports.
-function recalcField(viewportW, viewportH) {
+// customTileH: optional custom tile area height in canvas pixels (for chat resize)
+function recalcField(viewportW, viewportH, customTileH) {
   const physW = Math.round(viewportW * dpr);
   const physH = Math.round(viewportH * dpr);
   const tileW = physW - sidebarWidth;
-  const tileH = physH - chatHeight;
+  const tileH = customTileH != null ? customTileH : (physH - chatHeight);
   const oldField = field;
   field = Math.max(BASE_FIELD, Math.floor(Math.min(tileW / TILE_COLS, tileH / TILE_ROWS)));
   scale = field / size;

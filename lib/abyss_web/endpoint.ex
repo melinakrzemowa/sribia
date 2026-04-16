@@ -14,7 +14,7 @@ defmodule AbyssWeb.Endpoint do
     only: ~w(css fonts images sprites js vendor favicon.ico robots.txt manifest.json)
 
   if Mix.env() == :dev do
-    plug Tidewave
+    plug Tidewave, allow_remote_access: true
   end
 
   # Code reloading can be explicitly enabled under the
