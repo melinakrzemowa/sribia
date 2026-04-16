@@ -1,4 +1,8 @@
-import { mapSize, field, size, scale, displayScale, panelWidth } from "../globals";
+import {
+  mapSize, field, size, scale, displayScale, dpr,
+  canvasWidth, canvasHeight, sidebarWidth, chatHeight,
+  recalcField,
+} from "../globals";
 
 import GameMap from "../game_map";
 import GameChannel from "../channels/game_channel";
@@ -7,6 +11,7 @@ import UsersContainer from "../users_container";
 import MobileDetect from "mobile-detect";
 import items from "../data/items.json" assert { type: "json" };
 import RightPanelState from "./right_panel";
+import ChatRenderer from "../chat_renderer";
 
 export default class MainState extends Phaser.State {
   preload() {
@@ -102,7 +107,10 @@ export default class MainState extends Phaser.State {
     this.stick.baseSprite.scale.setTo(0.5 * displayScale, 0.5 * displayScale);
     this.stick.stickSprite.scale.setTo(0.5 * displayScale, 0.5 * displayScale);
 
-    // Enable responsive scaling for all devices
+    // SHOW_ALL scales the canvas to fill the parent while maintaining aspect ratio.
+    // Since game dimensions = viewport * dpr, the scale factor is always 1/dpr,
+    // keeping the sidebar at a fixed 200 CSS pixels. Input coordinates are handled
+    // automatically by the ScaleManager.
     this.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
 
     // Verify if on mobile
@@ -119,8 +127,8 @@ export default class MainState extends Phaser.State {
       mapSize * field
     );
 
-    this.camera.width = field * 15;
-    this.camera.height = field * 11;
+    // Camera covers the tile play area (canvas minus sidebar and chat)
+    this.updateCameraViewport(canvasWidth, canvasHeight);
 
     this.input.keyboard.addKeyCapture([
       Phaser.Keyboard.LEFT,
@@ -153,9 +161,133 @@ export default class MainState extends Phaser.State {
 
     this.channel.join();
 
-    // Initialize and create right panel
+    // Fill gap between tile area and sidebar
+    this.gapGfx = this.game.add.graphics(0, 0);
+    this.gapGfx.fixedToCamera = true;
+    this.drawGap(canvasWidth, canvasHeight);
+
+    // Chat renderer (Phaser-based scrollable chat) — after gap so it draws on top
+    this.setupChat(canvasWidth, canvasHeight);
+
+    // Initialize and create right panel (sidebar)
     this.rightPanel = new RightPanelState(this.game, this);
     this.rightPanel.create();
+
+    // Handle window resize immediately so setGameSize runs before SHOW_ALL's
+    // next-frame recalculation picks up the new dimensions.
+    window.addEventListener("resize", () => this.handleResize());
+  }
+
+  updateCameraViewport(cw, ch) {
+    // Always show exactly 15x11 tiles. field is sized to make this fit.
+    this.camera.width = field * 15;
+    // Full canvas height so fixedToCamera elements render below the tile area.
+    this.camera.height = ch;
+  }
+
+  handleResize() {
+    // Recalculate field to always show 15x11 tiles that fill the available space
+    const oldField = recalcField(window.innerWidth, window.innerHeight);
+    const newW = canvasWidth;
+    const newH = canvasHeight;
+
+    // Resize the game canvas
+    this.game.scale.setGameSize(newW, newH);
+    this.game.canvas.style.width = window.innerWidth + "px";
+    this.game.canvas.style.height = window.innerHeight + "px";
+    this.game.scale.scaleFactor.setTo(dpr, dpr);
+    this.game.scale.scaleFactorInversed.setTo(1 / dpr, 1 / dpr);
+    this.game.input.scale.setTo(dpr, dpr);
+    Phaser.Canvas.setImageRenderingCrisp(this.game.canvas);
+
+    // Rescale all world sprites if field changed
+    if (oldField !== field) {
+      this.rescaleWorld(oldField);
+    }
+
+    // Update camera — always 15x11 tiles
+    this.camera.width = field * 15;
+    this.camera.height = newH;
+
+    // Update world bounds
+    this.world.setBounds(-field / 2, -field / 2, mapSize * field, mapSize * field);
+
+    // Update debug font
+    this.game.debug.font = `${Math.round(14 * displayScale)}px Courier`;
+    this.game.debug.lineHeight = Math.round(16 * displayScale);
+
+    // Rebuild UI elements at new positions
+    this.drawGap(newW, newH);
+    if (this.chatRenderer) {
+      const tileH = field * 11;
+      const chatX = 0;
+      const chatY = tileH;
+      const chatW = newW - sidebarWidth;
+      const chatH = newH - tileH;
+      this.chatRenderer.reposition(chatX, chatY, chatW, chatH);
+    }
+    this.rightPanel.rebuild(newW, newH);
+  }
+
+  rescaleWorld(oldField) {
+    const ratio = field / oldField;
+    const newScale = scale;
+
+    // Rescale all world children (ground tiles etc.)
+    this.world.children.forEach((child) => {
+      if (!child.fixedToCamera && child !== this.group) {
+        child.x *= ratio;
+        child.y *= ratio;
+        if (child.scale) child.scale.setTo(newScale, newScale);
+      }
+    });
+
+    // Rescale group children (items, characters)
+    this.group.children.forEach((child) => {
+      child.x *= ratio;
+      child.y *= ratio;
+      if (child.scale) child.scale.setTo(newScale, newScale);
+    });
+
+    // Fix player position
+    if (this.player.sprite) {
+      this.player.sprite.x = this.player.position.x * field;
+      this.player.sprite.y = this.player.position.y * field;
+      if (this.player.nameText) this.player.nameText.update();
+    }
+
+    // Fix other user positions
+    for (const userId in this.users.container) {
+      const user = this.users.container[userId];
+      if (user.sprite) {
+        user.sprite.x = user.position.x * field;
+        user.sprite.y = user.position.y * field;
+        if (user.nameText) user.nameText.update();
+      }
+    }
+  }
+
+  setupChat(cw, ch) {
+    const tileH = field * 11;
+    const chatX = 0;
+    const chatY = tileH;
+    const chatW = cw - sidebarWidth;
+    const chatH = ch - tileH;
+
+    this.chatRenderer = new ChatRenderer(this.game, chatX, chatY, chatW, chatH);
+    // Expose globally so chat_channel.js can push messages
+    window.chatRenderer = this.chatRenderer;
+  }
+
+  drawGap(cw, ch) {
+    this.gapGfx.clear();
+    const tileRight = this.camera.width;
+    const sidebarLeft = cw - sidebarWidth;
+    if (tileRight < sidebarLeft) {
+      this.gapGfx.beginFill(0x000000);
+      this.gapGfx.drawRect(tileRight, 0, sidebarLeft - tileRight, ch);
+      this.gapGfx.endFill();
+    }
   }
 
   update() {

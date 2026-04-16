@@ -48,8 +48,8 @@ export default class MapTile {
           if (spriteId > 0) {
             let sheetNumber = Math.ceil(spriteId / 1000);
 
-            let x = (this.x - w) * field - (item.hasOffset ? item.offsetX : 0);
-            let y = (this.y - h) * field - (item.hasOffset ? item.offsetY : 0);
+            let x = (this.x - w) * field - (item.hasOffset ? item.offsetX * scale : 0);
+            let y = (this.y - h) * field - (item.hasOffset ? item.offsetY * scale : 0);
 
             let sprite = this.map.state.add.sprite(
               x,
