@@ -1,4 +1,4 @@
-FROM hexpm/elixir:1.14.5-erlang-24.3.4.13-debian-bookworm-20230612-slim AS build
+FROM hexpm/elixir:1.19.5-erlang-28.4.2-debian-bookworm-20260406-slim AS build
 
 # install build dependencies
 RUN apt-get update && \
@@ -40,7 +40,7 @@ COPY lib lib
 RUN mix do compile, release
 
 # prepare release image
-FROM debian:bookworm-20230612-slim AS app
+FROM debian:bookworm-20260406-slim AS app
 
 # install build dependencies
 RUN apt-get update && \

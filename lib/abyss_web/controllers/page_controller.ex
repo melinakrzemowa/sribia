@@ -3,7 +3,7 @@ defmodule AbyssWeb.PageController do
 
   def index(conn, _params) do
     conn
-    |> put_layout("game.html")
+    |> put_layout(html: {AbyssWeb.LayoutView, :game})
     |> render("index.html")
   end
 

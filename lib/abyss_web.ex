@@ -19,10 +19,12 @@ defmodule AbyssWeb do
 
   def controller do
     quote do
-      use Phoenix.Controller, namespace: AbyssWeb
+      use Phoenix.Controller, formats: [html: "View"]
       import Plug.Conn
       import AbyssWeb.Gettext
       alias AbyssWeb.Router.Helpers, as: Routes
+
+      plug :put_layout, html: {AbyssWeb.LayoutView, :app}
     end
   end
 
@@ -33,10 +35,11 @@ defmodule AbyssWeb do
         namespace: AbyssWeb
 
       # Import convenience functions from controllers
-      import Phoenix.Controller, only: [get_flash: 2, view_module: 1]
+      import Phoenix.Controller, only: [view_module: 1]
 
       # Use all HTML functionality (forms, tags, etc)
-      use Phoenix.HTML
+      import Phoenix.HTML
+      use PhoenixHTMLHelpers
 
       import AbyssWeb.ErrorHelpers
       import AbyssWeb.Gettext

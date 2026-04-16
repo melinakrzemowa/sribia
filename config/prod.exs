@@ -3,8 +3,7 @@ import Config
 # For production, we often load configuration from external
 # sources, such as your system environment. For this reason,
 # you won't find the :http configuration below, but set inside
-# AbyssWeb.Endpoint.init/2 when load_from_system_env is
-# true. Any dynamic configuration should be done there.
+# config/runtime.exs. Any dynamic configuration should be done there.
 #
 # Don't forget to configure the url host to something meaningful,
 # Phoenix uses this information when generating URLs.

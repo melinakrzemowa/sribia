@@ -7,12 +7,12 @@ import Config
 # watchers to your application. For example, we use it
 # with brunch.io to recompile .js and .css sources.
 config :abyss, AbyssWeb.Endpoint,
-  http: [port: 4000],
+  http: [port: 4040],
   debug_errors: true,
   code_reloader: true,
   check_origin: false,
   watchers: [
-    node: ["build.js", "--watch", cd: Path.expand("../assets", __DIR__)]
+    esbuild: {Esbuild, :install_and_run, [:default, ~w(--sourcemap=inline --watch)]}
   ]
 
 # ## SSL Support

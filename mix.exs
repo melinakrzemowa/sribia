@@ -5,10 +5,10 @@ defmodule Abyss.Mixfile do
     [
       app: :abyss,
       version: "0.1.1",
-      elixir: "~> 1.4",
+      elixir: "~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),
-      compilers: [:phoenix] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
+      listeners: [Phoenix.CodeReloader],
       aliases: aliases(),
       deps: deps()
     ]
@@ -33,21 +33,26 @@ defmodule Abyss.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:jason, "~> 1.5.0-alpha.2"},
-      {:jason_native, "~> 0.1.0"},
-      {:phoenix, "~> 1.5.0"},
-      {:phoenix_pubsub, "~> 2.0"},
-      {:ecto_sql, "~> 3.6"},
-      {:phoenix_ecto, "~> 4.4"},
+      {:jason, "~> 1.4"},
+      {:phoenix, "~> 1.7"},
+      {:phoenix_pubsub, "~> 2.1"},
+      {:ecto_sql, "~> 3.12"},
+      {:phoenix_ecto, "~> 4.6"},
       {:postgrex, ">= 0.0.0"},
-      {:phoenix_html, "~> 2.10"},
-      {:phoenix_live_reload, "~> 1.0", only: :dev},
-      {:gettext, "~> 0.11"},
-      {:plug_cowboy, "~> 2.1"},
-      {:esbuild, "~> 0.2", runtime: Mix.env() == :dev},
-      {:telemetry, "~> 0.4"},
-      {:cachex, "~> 3.6"},
-      {:unzip, "~> 0.8.0"}
+      {:phoenix_html, "~> 4.1"},
+      {:phoenix_html_helpers, "~> 1.0"},
+      {:phoenix_view, "~> 2.0"},
+      {:phoenix_live_reload, "~> 1.5", only: :dev},
+      {:gettext, "~> 0.26"},
+      {:bandit, "~> 1.6"},
+      {:esbuild, "~> 0.8", runtime: Mix.env() == :dev},
+      {:telemetry, "~> 1.3"},
+      {:telemetry_metrics, "~> 1.0"},
+      {:telemetry_poller, "~> 1.1"},
+      {:cachex, "~> 4.0"},
+      {:unzip, "~> 0.12"},
+      {:phoenix_live_view, "~> 1.0"},
+      {:plug_cowboy, "~> 2.7"}
     ]
   end
 
