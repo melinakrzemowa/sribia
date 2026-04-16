@@ -102,7 +102,7 @@ export default class MainState extends Phaser.State {
 
     // Joystick scaled by dpr to maintain consistent CSS size (~100px diameter)
     this.stick = this.pad.addStick(0, 0, Math.round(100 * dpr), "generic");
-    this.stick.alignBottomLeft(0);
+    this.stick.alignBottomLeft(Math.round(20 * dpr));
 
     this.stick.baseSprite.scale.setTo(0.5 * dpr, 0.5 * dpr);
     this.stick.stickSprite.scale.setTo(0.5 * dpr, 0.5 * dpr);
