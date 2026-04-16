@@ -296,26 +296,12 @@ export default class MainState extends Phaser.State {
   }
 
   applyChatResize(newTileH) {
-    const oldField = recalcField(window.innerWidth, window.innerHeight, newTileH);
-
-    if (oldField !== field) {
-      // Field changed — would need full reload, skip for now
-      // (chat drag only repositions within current field)
-      recalcField(window.innerWidth, window.innerHeight); // restore original field
-      return;
-    }
-
-    // Field unchanged — just reposition chat
-    const tileH = field * 11;
-    const chatW = canvasWidth - sidebarWidth;
-    const chatH = canvasHeight - tileH;
-    this.chatRenderer.reposition(0, tileH, chatW, chatH);
-
-    const handleH = this.s_dpr(4);
-    this.drawChatHandle(0, tileH, chatW, handleH);
-    this.chatHandleSprite.cameraOffset.setTo(0, tileH - Math.round(handleH / 2));
-
-    this.drawBorders(canvasWidth, canvasHeight);
+    // Store the desired chat height as CSS pixels and reload.
+    // globals.js reads this on load to compute the correct field.
+    const chatCanvasPx = canvasHeight - newTileH;
+    const chatCSS = Math.round(chatCanvasPx / dpr);
+    localStorage.setItem("sribia_chatH", chatCSS.toString());
+    window.location.reload();
   }
 
   drawBorders(cw, ch) {

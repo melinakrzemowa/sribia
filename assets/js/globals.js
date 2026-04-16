@@ -19,9 +19,14 @@ let canvasHeight = Math.round(window.innerHeight * dpr);
 const sidebarWidth = Math.round(SIDEBAR_CSS_WIDTH * dpr);
 const chatHeight = Math.round(CHAT_CSS_HEIGHT * dpr);
 
-// Tile area = everything left of sidebar and above chat
+// Tile area = everything left of sidebar and above chat.
+// Custom chat height in CSS pixels (set by dragging the play/chat border).
+const savedChatCSS = parseInt(localStorage.getItem("sribia_chatH"), 10);
+const effectiveChatH = (savedChatCSS > 20 && savedChatCSS < window.innerHeight - 100)
+  ? Math.round(savedChatCSS * dpr)
+  : chatHeight;
 const tileAreaWidth = canvasWidth - sidebarWidth;
-const tileAreaHeight = canvasHeight - chatHeight;
+const tileAreaHeight = canvasHeight - effectiveChatH;
 
 // Field scales to fill the tile area
 const fieldFromWidth = tileAreaWidth / TILE_COLS;
