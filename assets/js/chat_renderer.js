@@ -85,6 +85,7 @@ export default class ChatRenderer {
     input.style.background = "#1a1a1a";
     input.style.color = "#ffffff";
     input.style.fontFamily = "Verdana, sans-serif";
+    input.style.fontWeight = "bold";
     input.style.fontSize = FONT_SIZE_CSS + "px";
     input.style.padding = "0 4px";
     input.style.outline = "none";
@@ -99,7 +100,7 @@ export default class ChatRenderer {
   addMessage(text, color) {
     // Word-wrap the message into lines
     const ctx = this.bmd.ctx;
-    ctx.font = `${this.fontSize}px Verdana`;
+    ctx.font = `bold ${this.fontSize}px Verdana`;
     const maxWidth = this.w - this.margin * 2;
     const lines = this.wrapText(ctx, text, maxWidth);
 
@@ -166,7 +167,7 @@ export default class ChatRenderer {
     ctx.clearRect(0, 0, w, h);
 
     // Draw messages from bottom up
-    ctx.font = `${this.fontSize}px Verdana`;
+    ctx.font = `bold ${this.fontSize}px Verdana`;
     ctx.textBaseline = "top";
 
     // Flatten all lines with colors
