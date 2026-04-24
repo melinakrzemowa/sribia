@@ -12,6 +12,7 @@ import MobileDetect from "mobile-detect";
 import items from "../data/items.json" assert { type: "json" };
 import RightPanelState from "./right_panel";
 import ChatRenderer from "../chat_renderer";
+import { findPath } from "../pathfinder";
 
 export default class MainState extends Phaser.State {
   preload() {
@@ -170,6 +171,10 @@ export default class MainState extends Phaser.State {
       Phaser.Keyboard.UP,
       Phaser.Keyboard.DOWN,
     ]);
+
+    // Click-to-move: queue of tile targets ({x, y}) for the player to walk through.
+    this.clickPath = [];
+    this.input.onDown.add(this.onWorldClick, this);
 
     // Join channels to listen on events from backend
     this.channel.on("move", (user) => {
@@ -386,6 +391,54 @@ export default class MainState extends Phaser.State {
     }
   }
 
+  // Translate a world pointer click into a tile path via A* and start walking.
+  // Clicks on the sidebar / chat area are ignored; the pointer position has
+  // already been fired from those regions by their own input sprites.
+  onWorldClick(pointer) {
+    if (!this.player || !this.player.joined) return;
+    // Only left mouse button / touch (ignore right-click).
+    if (pointer.rightButton && pointer.rightButton.isDown) return;
+    // Skip clicks outside the tile viewport (sidebar, chat).
+    if (pointer.x >= this.camera.width) return;
+    if (pointer.y >= this.camera.height) return;
+
+    // The pointer's screen coords are in canvas pixels; add camera scroll to
+    // get world pixels. Don't use `input.worldX` because it reads from a
+    // separate `input.x` that isn't always synced with the active pointer.
+    const worldX = pointer.x + this.camera.x;
+    const worldY = pointer.y + this.camera.y;
+    const tx = Math.round(worldX / field);
+    const ty = Math.round(worldY / field);
+    if (tx === this.player.position.x && ty === this.player.position.y) return;
+
+    const path = findPath(
+      this.player.position,
+      { x: tx, y: ty },
+      (x, y) => this.map.isBlocked(x, y)
+    );
+    if (path && path.length > 0) this.clickPath = path;
+  }
+
+  // If there's an active click path, derive the next-step direction toward its
+  // current head. Keyboard / joystick input takes precedence and cancels the path.
+  pathDirection() {
+    const p = this.player.position;
+    while (this.clickPath.length > 0) {
+      const t = this.clickPath[0];
+      if (t.x === p.x && t.y === p.y) {
+        this.clickPath.shift();
+        continue;
+      }
+      // If the upcoming tile became blocked (e.g. someone stepped in), abort.
+      if (this.map.isBlocked(t.x, t.y)) {
+        this.clickPath = [];
+        return { x: 0, y: 0 };
+      }
+      return { x: Math.sign(t.x - p.x), y: Math.sign(t.y - p.y) };
+    }
+    return { x: 0, y: 0 };
+  }
+
   update() {
     let direction = { x: 0, y: 0 };
 
@@ -401,6 +454,13 @@ export default class MainState extends Phaser.State {
       direction.y--;
     if (!this.stick.isDown && this.input.keyboard.isDown(Phaser.Keyboard.DOWN))
       direction.y++;
+
+    // Manual input overrides / cancels click-to-move.
+    if (direction.x !== 0 || direction.y !== 0) {
+      if (this.clickPath.length > 0) this.clickPath = [];
+    } else if (this.clickPath.length > 0) {
+      direction = this.pathDirection();
+    }
 
     this.player.update(direction, this.time.fps);
 
