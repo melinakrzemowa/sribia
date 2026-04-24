@@ -6,11 +6,12 @@
 // `isBlocked(x, y)` is consulted for every tile we consider except `start`.
 // The `end` tile itself must be walkable (we don't path onto blocking tiles).
 //
-// Diagonal moves cost 2.1 (slightly more than two cardinal moves) so the
-// pathfinder prefers cardinal paths when costs would otherwise tie — a
-// straight-line walk of cardinals beats an equivalent diagonal sequence.
-// Manhattan distance remains admissible under this cost model. Corner
-// cutting through two orthogonal blockers is disallowed.
+// Diagonal moves cost 2 (matching the server-side double cooldown for
+// diagonals) while cardinal moves cost 1. When a cardinal and diagonal
+// route have the same total cost, ties are broken by preferring the
+// route with fewer *tiles* (so a single diagonal wins over two cardinals
+// covering the same delta). Manhattan distance is admissible here.
+// Corner cutting through two orthogonal blockers is disallowed.
 export function findPath(start, end, isBlocked, opts = {}) {
   const maxNodes = opts.maxNodes || 800;
 
@@ -21,19 +22,24 @@ export function findPath(start, end, isBlocked, opts = {}) {
   const heuristic = (x, y) =>
     Math.abs(x - end.x) + Math.abs(y - end.y);
 
+  // Each node additionally tracks `steps` (tile count from start) so we can
+  // tie-break equal-cost paths by preferring fewer tiles.
   const nodes = new Map();
   const startKey = key(start.x, start.y);
-  nodes.set(startKey, { x: start.x, y: start.y, g: 0, f: heuristic(start.x, start.y), parent: null, closed: false });
+  nodes.set(startKey, { x: start.x, y: start.y, g: 0, steps: 0, f: heuristic(start.x, start.y), parent: null, closed: false });
   const open = new Set([startKey]);
 
   let iter = 0;
   while (open.size > 0 && iter++ < maxNodes) {
-    // Pick node in open set with the lowest f.
+    // Pick node with the lowest f; on ties, fewer steps (tiles) wins so
+    // diagonal shortcuts beat equivalent cardinal sequences.
     let currentKey = null;
     let current = null;
     for (const k of open) {
       const n = nodes.get(k);
-      if (!current || n.f < current.f) {
+      if (!current ||
+          n.f < current.f ||
+          (n.f === current.f && n.steps < current.steps)) {
         current = n;
         currentKey = k;
       }
@@ -67,17 +73,21 @@ export function findPath(start, end, isBlocked, opts = {}) {
           if (isBlocked(current.x + dx, current.y) &&
               isBlocked(current.x, current.y + dy)) continue;
         }
-        const stepCost = dx !== 0 && dy !== 0 ? 2.1 : 1;
+        const stepCost = dx !== 0 && dy !== 0 ? 2 : 1;
         const g = current.g + stepCost;
-        if (existing && g >= existing.g) continue;
+        const steps = current.steps + 1;
+        // Replace an existing node only if we got here more cheaply, or at
+        // equal cost via fewer tiles.
+        if (existing && (g > existing.g || (g === existing.g && steps >= existing.steps))) continue;
         const f = g + heuristic(nx, ny);
         if (existing) {
           existing.g = g;
+          existing.steps = steps;
           existing.f = f;
           existing.parent = current;
           open.add(nKey);
         } else {
-          nodes.set(nKey, { x: nx, y: ny, g, f, parent: current, closed: false });
+          nodes.set(nKey, { x: nx, y: ny, g, steps, f, parent: current, closed: false });
           open.add(nKey);
         }
       }
