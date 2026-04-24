@@ -36,7 +36,12 @@ defmodule Abyss.Game do
 
   def move(user_id, direction) do
     user = Accounts.get_user!(user_id)
-    move_time = round(100_000 / (2 * (user.speed - 1) + 180))
+    base_move_time = round(100_000 / (2 * (user.speed - 1) + 180))
+    # Diagonal steps cover sqrt(2) × the distance of a cardinal step, so they
+    # cost twice the cooldown.
+    move_time =
+      if direction in [:nw, :ne, :sw, :se], do: base_move_time * 2, else: base_move_time
+
     diff = NaiveDateTime.diff(NaiveDateTime.utc_now(), user.last_move, :millisecond)
     # allow slightly faster movement for smooth movement on frontend
     if diff >= move_time * 0.85 do

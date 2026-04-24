@@ -145,9 +145,12 @@ export default class Player {
   }
 
   movingDistance() {
-    let distance =
-      (field / Math.round(100000 / (2 * (this.speed - 1) + 180))) *
-      (1000 / this.fps);
+    const baseMoveTime = Math.round(100000 / (2 * (this.speed - 1) + 180));
+    // Diagonal moves take twice as long per tile; halve the per-axis speed
+    // so the character visibly walks diagonals at half cardinal speed.
+    const isDiagonal = this.direction.x !== 0 && this.direction.y !== 0;
+    const moveTime = isDiagonal ? baseMoveTime * 2 : baseMoveTime;
+    let distance = (field / moveTime) * (1000 / this.fps);
     return distance > field ? field : distance;
   }
 
