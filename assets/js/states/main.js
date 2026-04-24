@@ -62,6 +62,40 @@ export default class MainState extends Phaser.State {
       "/sprites/tibia7.png",
       "/sprites/tibia7.json"
     );
+
+    // edubart/otclient UI chrome (panels, buttons, progress bar, miniwindow)
+    ["panel_side", "miniwindow", "panel_map", "progressbar", "separator_horizontal"].forEach((n) =>
+      this.load.image(`otc_${n}`, `/images/ui/otc/ui/${n}.png`)
+    );
+    // Buttons are 3-state spritesheets (22x69 = 22x23 × 3)
+    ["button", "button_rounded", "tabbutton_square"].forEach((n) => {
+      const w = n === "tabbutton_square" ? 20 : 22;
+      const h = n === "tabbutton_square" ? 21 : 23;
+      this.load.spritesheet(`otc_${n}`, `/images/ui/otc/ui/${n}.png`, w, h);
+    });
+
+    // Equipment slot placeholders (34x34)
+    ["head", "neck", "body", "back", "right-hand", "left-hand", "legs", "feet", "finger", "ammo"].forEach((n) =>
+      this.load.image(`slot_${n.replace("-", "_")}`, `/images/ui/otc/slots/${n}.png`)
+    );
+
+    // Combat mode icons — 20x40 spritesheet (2 frames: off, on)
+    ["fightoffensive", "fightbalanced", "fightdefensive", "chasemode", "safefight"].forEach((n) =>
+      this.load.spritesheet(`combat_${n}`, `/images/ui/otc/combat/${n}.png`, 20, 20)
+    );
+
+    // Minimap controls
+    ["zoom_in", "zoom_out", "cross"].forEach((n) =>
+      this.load.image(`mm_${n}`, `/images/ui/otc/minimap/${n}.png`)
+    );
+    ["floor_up", "floor_down"].forEach((n) =>
+      this.load.spritesheet(`mm_${n}`, `/images/ui/otc/minimap/${n}.png`, 16, 16)
+    );
+
+    // Top button icons (for Skills/Battle/VIP/Logout tab icons)
+    ["skills", "battle", "viplist", "logout", "options"].forEach((n) =>
+      this.load.image(`top_${n}`, `/images/ui/otc/topbuttons/${n}.png`)
+    );
   }
 
   getSpriteIndex(group, w, h, l, x, y, z, f) {
