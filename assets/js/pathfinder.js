@@ -6,10 +6,11 @@
 // `isBlocked(x, y)` is consulted for every tile we consider except `start`.
 // The `end` tile itself must be walkable (we don't path onto blocking tiles).
 //
-// Diagonal moves cost 2 (matching the server-side double cooldown for
-// diagonals) while cardinal moves cost 1. Manhattan distance is an
-// admissible heuristic for this cost model. Corner-cutting through two
-// orthogonal blockers is disallowed.
+// Diagonal moves cost 2.1 (slightly more than two cardinal moves) so the
+// pathfinder prefers cardinal paths when costs would otherwise tie — a
+// straight-line walk of cardinals beats an equivalent diagonal sequence.
+// Manhattan distance remains admissible under this cost model. Corner
+// cutting through two orthogonal blockers is disallowed.
 export function findPath(start, end, isBlocked, opts = {}) {
   const maxNodes = opts.maxNodes || 800;
 
@@ -66,7 +67,7 @@ export function findPath(start, end, isBlocked, opts = {}) {
           if (isBlocked(current.x + dx, current.y) &&
               isBlocked(current.x, current.y + dy)) continue;
         }
-        const stepCost = dx !== 0 && dy !== 0 ? 2 : 1;
+        const stepCost = dx !== 0 && dy !== 0 ? 2.1 : 1;
         const g = current.g + stepCost;
         if (existing && g >= existing.g) continue;
         const f = g + heuristic(nx, ny);
