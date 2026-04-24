@@ -1,11 +1,92 @@
-<%= form_for @conn, Routes.page_path(@conn, :login), fn f -> %>
-  <div class="form-group">
-    <%= label f, :name, class: "control-label" %>
-    <%= text_input f, :name, class: "form-control" %>
-    <%= error_tag f, :name %>
-  </div>
+<link href="https://fonts.googleapis.com/css2?family=MedievalSharp&display=swap" rel="stylesheet">
 
-  <div class="form-group">
-    <%= submit "Login", class: "btn btn-primary" %>
+<style>
+  html, body { margin: 0; height: 100%; }
+
+  .login-screen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+    font-family: Verdana, Geneva, sans-serif;
+    color: #c9b37e;
+  }
+
+  .login-box {
+    background: linear-gradient(145deg, #2d2520 0%, #1f1a16 100%);
+    border: 3px solid #8b7355;
+    border-radius: 8px;
+    box-shadow: 0 0 0 2px #6b5638, 0 10px 40px rgba(0, 0, 0, 0.8);
+    padding: 30px;
+    width: 320px;
+    aspect-ratio: 1 / 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .login-title {
+    font-family: 'MedievalSharp', serif;
+    font-size: 52px;
+    text-align: center;
+    letter-spacing: 4px;
+    margin-bottom: 24px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8),
+                 0 0 20px rgba(201, 179, 126, 0.4);
+  }
+
+  .login-label {
+    display: block;
+    font-size: 14px;
+    margin-bottom: 8px;
+  }
+
+  .login-input, .login-btn {
+    width: 100%;
+    border-radius: 4px;
+    color: #c9b37e;
+    font: bold 14px Verdana, sans-serif;
+    box-sizing: border-box;
+  }
+
+  .login-input {
+    padding: 10px 14px;
+    margin-bottom: 20px;
+    background: #0f0f0d;
+    border: 2px solid #6b5638;
+  }
+
+  .login-input:focus {
+    outline: none;
+    border-color: #c9b37e;
+    box-shadow: 0 0 15px rgba(201, 179, 126, 0.3);
+  }
+
+  .login-btn {
+    padding: 12px;
+    background: #4a3c31;
+    border: 2px solid #8b7355;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+  }
+
+  .login-btn:hover {
+    background: #5a4b3c;
+    border-color: #c9b37e;
+  }
+</style>
+
+<div class="login-screen">
+  <div class="login-box">
+    <div class="login-title">Sribia</div>
+
+    <%= form_for @conn, Routes.page_path(@conn, :login), fn f -> %>
+      <%= label f, :name, "Character Name", class: "login-label" %>
+      <%= text_input f, :name, class: "login-input", autofocus: true %>
+      <%= error_tag f, :name %>
+      <%= submit "Enter World", class: "login-btn" %>
+    <% end %>
   </div>
-<% end %>
+</div>
