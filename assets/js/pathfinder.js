@@ -10,8 +10,9 @@
 // diagonals) while cardinal moves cost 1. When a cardinal and diagonal
 // route have the same total cost, ties are broken by preferring the
 // route with fewer *tiles* (so a single diagonal wins over two cardinals
-// covering the same delta). Manhattan distance is admissible here.
-// Corner cutting through two orthogonal blockers is disallowed.
+// covering the same delta). Manhattan distance is admissible here. The
+// game allows squeezing through a corner diagonally as long as the
+// destination tile is walkable, so we do not reject such moves.
 export function findPath(start, end, isBlocked, opts = {}) {
   const maxNodes = opts.maxNodes || 800;
 
@@ -68,11 +69,6 @@ export function findPath(start, end, isBlocked, opts = {}) {
         if (existing && existing.closed) continue;
         const atEnd = nx === end.x && ny === end.y;
         if (!atEnd && isBlocked(nx, ny)) continue;
-        // No corner cutting through two blockers.
-        if (dx !== 0 && dy !== 0) {
-          if (isBlocked(current.x + dx, current.y) &&
-              isBlocked(current.x, current.y + dy)) continue;
-        }
         const stepCost = dx !== 0 && dy !== 0 ? 2 : 1;
         const g = current.g + stepCost;
         const steps = current.steps + 1;
