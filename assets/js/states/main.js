@@ -420,12 +420,16 @@ export default class MainState extends Phaser.State {
   }
 
   // If there's an active click path, derive the next-step direction toward its
-  // current head. Keyboard / joystick input takes precedence and cancels the path.
+  // current head. We consume tiles against `movingPosition` (the tile the
+  // player is currently committed to) rather than `position` — otherwise the
+  // player would chain an extra step on arrival before main.update got a
+  // chance to shift the path. Keyboard / joystick input takes precedence and
+  // cancels the path.
   pathDirection() {
-    const p = this.player.position;
+    const mp = this.player.movingPosition;
     while (this.clickPath.length > 0) {
       const t = this.clickPath[0];
-      if (t.x === p.x && t.y === p.y) {
+      if (t.x === mp.x && t.y === mp.y) {
         this.clickPath.shift();
         continue;
       }
@@ -434,7 +438,7 @@ export default class MainState extends Phaser.State {
         this.clickPath = [];
         return { x: 0, y: 0 };
       }
-      return { x: Math.sign(t.x - p.x), y: Math.sign(t.y - p.y) };
+      return { x: Math.sign(t.x - mp.x), y: Math.sign(t.y - mp.y) };
     }
     return { x: 0, y: 0 };
   }
