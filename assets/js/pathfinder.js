@@ -62,9 +62,14 @@ export function findPath(start, end, isBlocked, opts = {}) {
     open.delete(currentKey);
     current.closed = true;
 
-    for (let dx = -1; dx <= 1; dx++) {
-      for (let dy = -1; dy <= 1; dy++) {
-        if (dx === 0 && dy === 0) continue;
+    // Cardinals first so open-set insertion order favours them — when a
+    // diagonal and a cardinal path to the same tile tie on cost AND steps,
+    // the cardinal one gets expanded first.
+    const deltas = [
+      [0, -1], [1, 0], [0, 1], [-1, 0],
+      [-1, -1], [1, -1], [1, 1], [-1, 1],
+    ];
+    for (const [dx, dy] of deltas) {
         const nx = current.x + dx;
         const ny = current.y + dy;
         const nKey = key(nx, ny);
@@ -89,7 +94,6 @@ export function findPath(start, end, isBlocked, opts = {}) {
           nodes.set(nKey, { x: nx, y: ny, g, steps, f, parent: current, closed: false });
           open.add(nKey);
         }
-      }
     }
   }
   return null;
