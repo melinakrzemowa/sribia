@@ -1,4 +1,4 @@
-import { dpr, canvasWidth, canvasHeight, sidebarWidth } from "../globals";
+import { dpr, canvasWidth, canvasHeight, sidebarWidth, IS_MOBILE } from "../globals";
 
 // Sidebar layout styled after edubart/otclient game UI.
 // All positions below are in CSS pixels; this.s() scales to physical.
@@ -187,9 +187,13 @@ export default class RightPanelState {
 
     // Layout walk-down: tabs sit right below equipment; open windows stack below tabs.
     let y = GUTTER;
-    y = this.drawMinimap(y, cssW);
-    y = this.drawStatusBars(y, cssW);
-    y = this.drawMainGrid(y, cssW);
+    if (IS_MOBILE) {
+      y = this.drawMobileLayout(y, cssW);
+    } else {
+      y = this.drawMinimap(y, cssW);
+      y = this.drawStatusBars(y, cssW);
+      y = this.drawMainGrid(y, cssW);
+    }
     y = this.drawTabs(y, cssW);
     this.drawWindows(y, cssH, cssW);
 
@@ -267,6 +271,99 @@ export default class RightPanelState {
     this.mpBarGeom = { x: this.panelX + this.s(barX + 2), y: this.s(y + 2), w: this.s(barW - 4), h: this.s(barH - 4) };
     this.mpNumText = this.addText(cssW / 2, y + barH / 2, "", 9, "#ffffff", [0.5, 0.5], true);
     return y + barH + GUTTER;
+  }
+
+  // ── Mobile: minimap + equipment side-by-side at the top, then full-width
+  //   horizontal rows for HP/MP, combat icons, and action buttons.
+  //
+  //   ┌──────────────┬─────────────────┐
+  //   │  minimap     │  equipment 3×4  │
+  //   ├──────────────┴─────────────────┤
+  //   │ HP bar                         │
+  //   │ MP bar                         │
+  //   ├────────────────────────────────┤
+  //   │ [combat × 6 icons in a row]    │
+  //   ├────────────────────────────────┤
+  //   │ Stop | Quests | Options | Help │
+  //   └────────────────────────────────┘
+  drawMobileLayout(y, cssW) {
+    const gap = 2;
+    const totalW = cssW - GUTTER * 2;
+
+    // Slot size capped so equipment icons stay small.
+    const slotSize = Math.min(34, Math.floor(totalW / 7));
+    const eqW = slotSize * 3;
+    const eqH = slotSize * 4;
+    const eqX = GUTTER;
+
+    // Minimap sits to the right of equipment, matching its height.
+    const mapSize = Math.min(eqH, totalW - eqW - gap * 2);
+    const mapX = GUTTER + totalW - mapSize;
+    const mapYPad = Math.floor((eqH - mapSize) / 2);
+    this.drawInsetFrame(mapX, y + mapYPad, mapSize, mapSize);
+    const gfx = this.bgGfx;
+    gfx.beginFill(0x000000);
+    gfx.drawRect(
+      this.panelX + this.s(mapX + 1), this.s(y + mapYPad + 1),
+      this.s(mapSize - 2), this.s(mapSize - 2)
+    );
+    gfx.endFill();
+    const cx = this.panelX + this.s(mapX + mapSize / 2);
+    const cyMm = this.s(y + mapYPad + mapSize / 2);
+    const cr = this.s(3);
+    const bw = Math.max(1, this.s(1));
+    gfx.beginFill(0xffffff);
+    gfx.drawRect(cx - cr, cyMm, cr * 2 + bw, bw);
+    gfx.drawRect(cx, cyMm - cr, bw, cr * 2 + bw);
+    gfx.endFill();
+
+    this.drawEquipment(y, eqX, eqW);
+
+    // HP / MP bars full width.
+    let ry = y + eqH + 4;
+    const barH = 12;
+    this.addImage("otc_progressbar", GUTTER, ry, totalW, barH);
+    this.hpBarGeom = { x: this.panelX + this.s(GUTTER + 2), y: this.s(ry + 2), w: this.s(totalW - 4), h: this.s(barH - 4) };
+    this.hpNumText = this.addText(GUTTER + totalW / 2, ry + barH / 2, "", 8, "#ffffff", [0.5, 0.5], true);
+    ry += barH + 2;
+    this.addImage("otc_progressbar", GUTTER, ry, totalW, barH);
+    this.mpBarGeom = { x: this.panelX + this.s(GUTTER + 2), y: this.s(ry + 2), w: this.s(totalW - 4), h: this.s(barH - 4) };
+    this.mpNumText = this.addText(GUTTER + totalW / 2, ry + barH / 2, "", 8, "#ffffff", [0.5, 0.5], true);
+    ry += barH + 4;
+
+    // Combat: 6 icons in a single horizontal row.
+    const combatModes = [
+      { key: "combat_fightoffensive", mode: "offensive" },
+      { key: "combat_fightbalanced",  mode: "balanced" },
+      { key: "combat_fightdefensive", mode: "defensive" },
+      { key: "combat_chasemode",      mode: "follow" },
+      { key: "combat_safefight",      mode: "secure" },
+    ];
+    const combatCellW = Math.min(24, Math.floor((totalW - gap * (combatModes.length - 1)) / combatModes.length));
+    combatModes.forEach(({ key, mode }, i) => {
+      let active;
+      if (mode === "follow") active = this.followOn;
+      else if (mode === "secure") active = this.secureOn;
+      else active = this.selectedFightMode === mode;
+      const bx = GUTTER + i * (combatCellW + gap);
+      this.addImage(key, bx, ry, combatCellW, combatCellW, active ? 1 : 0);
+      this.addClickArea(bx, ry, combatCellW, combatCellW, () => {
+        if (mode === "follow") this.followOn = !this.followOn;
+        else if (mode === "secure") this.secureOn = !this.secureOn;
+        else this.selectedFightMode = mode;
+        this.redraw();
+      });
+    });
+    ry += combatCellW + 4;
+
+    // Horizontal actions row.
+    const actionW = Math.floor((totalW - 3 * gap) / 4);
+    ["Stop", "Quests", "Options", "Help"].forEach((label, i) => {
+      const bx = GUTTER + i * (actionW + gap);
+      this.addButton(bx, ry, actionW, BUTTON_H, label, false, () => this.onAction(label.toLowerCase()));
+    });
+
+    return ry + BUTTON_H + GUTTER;
   }
 
   // ── Main grid: equipment (left) + combat/actions (right) ──

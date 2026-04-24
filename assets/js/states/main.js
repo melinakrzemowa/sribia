@@ -150,7 +150,8 @@ export default class MainState extends Phaser.State {
 
     // Verify if on mobile
     var md = new MobileDetect(window.navigator.userAgent);
-    if (!md.mobile()) {
+    this.isMobile = !!md.mobile();
+    if (!this.isMobile) {
       this.stick.alpha = 0;
       this.stick.enabled = false;
     }

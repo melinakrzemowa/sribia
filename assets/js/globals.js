@@ -5,8 +5,16 @@ const BASE_FIELD = 32;
 const TILE_COLS = 15;
 const TILE_ROWS = 11;
 
-// Sidebar is fixed at 200 CSS pixels; chat placeholder at the bottom.
-const SIDEBAR_CSS_WIDTH = 200;
+// Mobile gets a wider sidebar (the play area never fills the full width
+// in landscape anyway) so we can lay the HUD out in two compact columns
+// and leave more room for windows below the tabs. `?mobile=1` forces the
+// mobile layout on for desktop preview.
+const _uaMobile = typeof navigator !== "undefined" &&
+  /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+const _forceMobile = typeof window !== "undefined" &&
+  /(^|[?&])mobile=1(&|$)/.test(window.location.search);
+const IS_MOBILE = _uaMobile || _forceMobile;
+const SIDEBAR_CSS_WIDTH = IS_MOBILE ? 280 : 200;
 const CHAT_CSS_HEIGHT = 100;
 
 const dpr = window.devicePixelRatio || 1;
@@ -56,5 +64,6 @@ function recalcField(viewportW, viewportH, customTileH) {
 export {
   mapSize, field, size, scale, displayScale, dpr,
   canvasWidth, canvasHeight, sidebarWidth, chatHeight,
+  IS_MOBILE,
   recalcField,
 };
