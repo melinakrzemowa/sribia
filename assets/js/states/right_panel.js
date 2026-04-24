@@ -49,7 +49,15 @@ export default class RightPanelState {
     this.selectedFightMode = "balanced";
     this.followOn = true;
     this.secureOn = false;
-    this.openWindows = new Set(); // "Skills" | "Battle" | "VIP"
+    // Open windows stack below the tabs. Ordered array; each entry has a
+    // per-window height in CSS px that the user can resize via drag handle.
+    this.openWindows = []; // { name, h }
+    this.DEFAULT_WIN_H = 90;
+    this.MIN_WIN_H = 40;
+
+    // Active drag state (null when idle). Lives across redraws so handlers keep
+    // running even after the handle sprite is destroyed and recreated.
+    this._activeDrag = null;
   }
 
   s(v) { return Math.round(v * dpr); }
@@ -177,12 +185,13 @@ export default class RightPanelState {
     gfx.drawRect(this.panelX, 0, Math.max(1, this.s(1)), this.panelH);
     gfx.endFill();
 
-    // Layout walk-down
+    // Layout walk-down: tabs sit right below equipment; open windows stack below tabs.
     let y = GUTTER;
     y = this.drawMinimap(y, cssW);
     y = this.drawStatusBars(y, cssW);
     y = this.drawMainGrid(y, cssW);
     y = this.drawTabs(y, cssW);
+    this.drawWindows(y, cssH, cssW);
 
     // HP/MP dynamic fill gfx must render ABOVE the static bar chrome
     this.hpGfx = this.game.add.graphics(0, 0); this.hpGfx.fixedToCamera = true;
@@ -380,6 +389,151 @@ export default class RightPanelState {
     return ay;
   }
 
+  // Invisible sprite that starts a live drag on mousedown. Drag state lives on
+  // this._activeDrag so updateDrag() keeps firing across redraws.
+  addDragHandle(cssX, cssY, cssW, cssH, onLive) {
+    const w = this.s(cssW);
+    const h = this.s(cssH);
+    const bmd = this.game.add.bitmapData(w, h);
+    bmd.fill(255, 255, 255, 255);
+    const spr = this.game.add.sprite(0, 0, bmd);
+    spr.alpha = 0.001;
+    spr.fixedToCamera = true;
+    spr.cameraOffset.setTo(this.panelX + this.s(cssX), this.s(cssY));
+    spr.inputEnabled = true;
+    spr.input.pixelPerfectClick = false;
+    spr.input.useHandCursor = true;
+
+    spr.events.onInputDown.add(() => {
+      if (this._activeDrag) return; // already dragging
+      this._activeDrag = {
+        onLive,
+        lastY: this.game.input.activePointer.y,
+        state: {},
+      };
+    });
+
+    this.interactives.push(spr);
+    return spr;
+  }
+
+  // Called every frame from update(). Polls the pointer and forwards a live
+  // CSS-pixel delta to the active handler. Stops on mouse up.
+  updateDrag() {
+    const d = this._activeDrag;
+    if (!d) return;
+    const pointer = this.game.input.activePointer;
+    if (!pointer.isDown) {
+      const wasReorder = !!d.draggingName;
+      this._activeDrag = null;
+      if (wasReorder) this.redraw(); // snap dragged window back to its slot
+      return;
+    }
+    if (pointer.y === d.lastY) return;
+    const stepCss = (pointer.y - d.lastY) / dpr;
+    d.lastY = pointer.y;
+    d.onLive(stepCss, d.state);
+  }
+
+  // ── Open windows stack below the tabs ──
+  //   • Title bar drag → live reorder (dragged window follows cursor; neighbours jump when threshold crossed)
+  //   • Bottom edge drag → live resize
+  //   • [x] button → close
+  drawWindows(topY, bottomY, cssW) {
+    if (this.openWindows.length === 0) return;
+    const x = GUTTER;
+    const w = cssW - GUTTER * 2;
+    const titleH = 16;
+    const resizeH = 4;
+
+    // Draw stationary windows first, then the dragged one on top with its
+    // cursor-tracking offset applied.
+    const draggingName = this._activeDrag && this._activeDrag.draggingName;
+    const dragOffset = draggingName ? (this._activeDrag.state.acc || 0) : 0;
+
+    let cy = topY;
+    const rowTops = [];
+    this.openWindows.forEach((win) => {
+      rowTops.push(cy);
+      cy += Math.max(this.MIN_WIN_H, win.h) + resizeH + 1;
+    });
+
+    // Non-dragged windows at their array-slot positions
+    this.openWindows.forEach((win, i) => {
+      if (win.name === draggingName) return;
+      this.drawSingleWindow(win, i, x, w, rowTops[i], titleH, resizeH);
+    });
+
+    // Dragged window last (on top), offset by accumulated drag
+    if (draggingName) {
+      const i = this.openWindows.findIndex((w) => w.name === draggingName);
+      if (i >= 0) {
+        this.drawSingleWindow(
+          this.openWindows[i], i, x, w, rowTops[i] + dragOffset, titleH, resizeH
+        );
+      }
+    }
+  }
+
+  drawSingleWindow(win, i, x, w, cy, titleH, resizeH) {
+    const wh = Math.max(this.MIN_WIN_H, win.h);
+    const pressed = this._activeDrag && this._activeDrag.draggingName === win.name;
+
+    // Body frame + title bar
+    this.drawSlotBg(x, cy, w, wh);
+    this.drawButtonBg(x, cy, w, titleH, pressed);
+    this.addText(x + 6, cy + titleH / 2, win.name, 9, COLORS.textLight, [0, 0.5], true);
+
+    // Close [x]
+    const closeSize = titleH - 4;
+    const cxPos = x + w - closeSize - 2;
+    const ccy = cy + 2;
+    this.drawButtonBg(cxPos, ccy, closeSize, closeSize, false);
+    this.addText(cxPos + closeSize / 2, ccy + closeSize / 2, "x", 9, COLORS.textLight, [0.5, 0.5], true);
+    this.addClickArea(cxPos, ccy, closeSize, closeSize, () => {
+      this.openWindows.splice(i, 1);
+      this.redraw();
+    });
+
+    // Title bar drag → live reorder
+    const dragBarW = w - closeSize - 6;
+    const name = win.name;
+    this.addDragHandle(x, cy, dragBarW, titleH, (step, state) => {
+      if (!state.init) {
+        state.acc = 0;
+        state.init = true;
+        this._activeDrag.draggingName = name;
+      }
+      state.acc += step;
+      const arr = this.openWindows;
+      const idx = arr.findIndex((o) => o.name === name);
+      if (idx < 0) return;
+      const slotStep = resizeH + 1; // gap between windows in the row stack
+      if (state.acc < 0 && idx > 0) {
+        const prev = arr[idx - 1];
+        if (state.acc <= -(prev.h / 2)) {
+          [arr[idx - 1], arr[idx]] = [arr[idx], arr[idx - 1]];
+          state.acc += prev.h + slotStep;
+        }
+      } else if (state.acc > 0 && idx < arr.length - 1) {
+        const next = arr[idx + 1];
+        if (state.acc >= next.h / 2) {
+          [arr[idx], arr[idx + 1]] = [arr[idx + 1], arr[idx]];
+          state.acc -= next.h + slotStep;
+        }
+      }
+      this.redraw();
+    });
+
+    // Bottom resize handle → live resize
+    const resizeY = cy + wh;
+    this.drawButtonBg(x, resizeY, w, resizeH, false);
+    this.addDragHandle(x, resizeY, w, resizeH, (step) => {
+      win.h = Math.max(this.MIN_WIN_H, win.h + step);
+      this.redraw();
+    });
+  }
+
   // ── Tabs (Skills / Battle / VIP / Logout) ─────────────
   drawTabs(y, cssW) {
     const w = cssW - GUTTER * 2;
@@ -393,7 +547,7 @@ export default class RightPanelState {
     const btnH = BUTTON_H;
     tabs.forEach((t, i) => {
       const bx = GUTTER + i * (btnW + 2);
-      const pressed = t.window && this.openWindows.has(t.window);
+      const pressed = t.window && this.openWindows.some((w) => w.name === t.window);
       this.drawButtonBg(bx, y, btnW, btnH, pressed);
       this.addText(bx + btnW / 2, y + btnH / 2, t.label, 10, COLORS.textLight, [0.5, 0.5]);
       this.addClickArea(bx, y, btnW, btnH, () => {
@@ -434,8 +588,9 @@ export default class RightPanelState {
   }
 
   toggleWindow(name) {
-    if (this.openWindows.has(name)) this.openWindows.delete(name);
-    else this.openWindows.add(name);
+    const idx = this.openWindows.findIndex((w) => w.name === name);
+    if (idx >= 0) this.openWindows.splice(idx, 1);
+    else this.openWindows.push({ name, h: this.DEFAULT_WIN_H });
     this.redraw();
   }
 
@@ -476,6 +631,6 @@ export default class RightPanelState {
     }
   }
 
-  update() { this.updateBars(); }
+  update() { this.updateBars(); this.updateDrag(); }
   render() {}
 }
