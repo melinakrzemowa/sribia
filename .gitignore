@@ -26,3 +26,7 @@ npm-debug.log
 
 # Ignore map
 /priv/map.json
+
+# macOS metadata
+.DS_Store
+**/.DS_Store
