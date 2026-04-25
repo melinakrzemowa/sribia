@@ -1,4 +1,8 @@
-import { displayScale } from "./globals";
+import { dpr, field } from "./globals";
+
+function titleCase(s) {
+  return (s || "").replace(/\S+/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+}
 
 // Name label + small health bar above an entity. `object` needs `sprite` and
 // `name`; an optional `object.hp` (0..1 ratio) drives the bar fill, defaulting
@@ -8,26 +12,26 @@ export default class NameText {
   constructor(objectFactory, object) {
     this.objectFactory = objectFactory;
     this.object = object;
-    this.xOffset = Math.round(-8 * displayScale); // sprite anchor sits 0.75 from the left, so nudge name back over the head
-    this.yOffset = Math.round(30 * displayScale); // sit above the head, not the body
-    this.barYOffset = Math.round(5 * displayScale); // distance from name center down to bar top
-    this.barW = Math.round(16 * displayScale);
-    this.barH = Math.max(2, Math.round(1.5 * displayScale));
+    // Fixed-pixel sizing (× dpr) for the bar and gaps so the readout stays the
+    // same on any zoom level. The vertical anchor (head top) still tracks the
+    // tile field size since that changes with the play area.
+    this.xOffset = -Math.round(field * 0.25); // sprite is anchored at 0.75 — pull back to centre over the head
+    this.barW = Math.round(28 * dpr);
+    this.barH = Math.max(2, Math.round(2 * dpr));
+    this.gapBarToHead = Math.round(1 * dpr);   // 1 CSS px above the head
+    this.gapNameToBar = Math.round(2 * dpr);
 
     const nameColor = object.type === "monster" ? "#e84040" : "#43d637";
+    // Font is sized in physical pixels (× dpr) — independent of the tile
+    // scale, so the name reads at a constant CSS size on screen.
     const style = {
-      font: `bold ${Math.round(7 * displayScale)}px Tahoma`,
+      font: `bold ${Math.round(10 * dpr)}px Tahoma`,
       fill: nameColor,
       align: "center",
       stroke: "#000000",
-      strokeThickness: Math.max(1, Math.round(displayScale)),
+      strokeThickness: Math.max(1, Math.round(dpr)),
     };
-    this.nameText = objectFactory.text(
-      object.sprite.x + this.xOffset,
-      object.sprite.y - this.yOffset,
-      object.name,
-      style
-    );
+    this.nameText = objectFactory.text(0, 0, titleCase(object.name), style);
     this.nameText.anchor.set(0.5);
     this.nameText.bringToTop();
 
@@ -35,7 +39,19 @@ export default class NameText {
     this._lastHp = null;
     this._lastX = null;
     this._lastY = null;
+    this._reposition();
     this.drawBar(this._currentHp());
+  }
+
+  // Place name + bar so the bar's bottom sits `gapBarToHead` above the head.
+  _reposition() {
+    const sx = this.object.sprite.x + this.xOffset;
+    const headTop = this.object.sprite.y - field * 0.75;
+    const barBottom = headTop - this.gapBarToHead;
+    this._barTop = barBottom - this.barH;
+    this._barCx = sx;
+    this.nameText.x = sx;
+    this.nameText.y = this._barTop - this.gapNameToBar - this.nameText.height / 2;
   }
 
   _currentHp() {
@@ -46,10 +62,8 @@ export default class NameText {
   }
 
   drawBar(hp) {
-    const x = this.object.sprite.x + this.xOffset;
-    const y = this.object.sprite.y - this.yOffset + this.barYOffset;
-    const bx = Math.round(x - this.barW / 2);
-    const by = Math.round(y);
+    const bx = Math.round(this._barCx - this.barW / 2);
+    const by = Math.round(this._barTop);
     this.hpBar.clear();
     this.hpBar.beginFill(0x000000, 1);
     this.hpBar.drawRect(bx, by, this.barW, this.barH);
@@ -65,15 +79,12 @@ export default class NameText {
   }
 
   update() {
-    const x = this.object.sprite.x + this.xOffset;
-    const y = this.object.sprite.y - this.yOffset;
-    this.nameText.x = x;
-    this.nameText.y = y;
+    this._reposition();
     const hp = this._currentHp();
-    if (hp !== this._lastHp || x !== this._lastX || y !== this._lastY) {
+    if (hp !== this._lastHp || this._barCx !== this._lastX || this._barTop !== this._lastY) {
       this.drawBar(hp);
-      this._lastX = x;
-      this._lastY = y;
+      this._lastX = this._barCx;
+      this._lastY = this._barTop;
     }
   }
 
