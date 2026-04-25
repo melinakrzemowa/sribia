@@ -115,22 +115,20 @@ export default class MapTile {
     const start = Math.max(0, this.items.length - MAX_VISIBLE_ITEMS);
     const visible = this.items.slice(start);
 
-    // `elevationCount` increments only for hasElevation items, so a non-
-    // elevated item on top of two boxes is still lifted by 2 steps.
+    // The visual stack offset is driven solely by hasElevation items
+    // already rendered below. A pile of ropes (no elevation) overlaps
+    // exactly; a box on top of a rock still sits at floor level because
+    // the rock doesn't elevate; box → rock → box lifts the second box
+    // by one step (the first box) only.
     let elevationCount = 0;
-    visible.forEach((it, stackIdx) => {
+    visible.forEach((it) => {
       const def = items[String(it.item_id)];
       if (!def) return;
-
       // hasElevation items past the cap are hidden entirely.
       if (def.hasElevation && elevationCount >= MAX_VISIBLE_ELEVATIONS) return;
 
-      // All stacked items get a small left shift per stack position so a pile
-      // of identical items reads as a stack instead of one sprite.
-      const xShift = -stackIdx * 8 * scale;
-      const yShift = -Math.min(MAX_VISIBLE_ELEVATIONS, elevationCount) * 8 * scale;
-
-      const sprite = this._spawnItemSprite(def, xShift, yShift, it);
+      const off = -Math.min(MAX_VISIBLE_ELEVATIONS, elevationCount) * 8 * scale;
+      const sprite = this._spawnItemSprite(def, off, off, it);
       if (sprite) this.itemSprites.push(sprite);
       if (def.hasElevation) elevationCount += 1;
     });

@@ -48,7 +48,16 @@ export default class Player {
 
       this.sprite = this.state.users.createUserSprite(payload);
       this.sprite.gameObject = this;
-      this.state.camera.follow(this.sprite);
+
+      // Camera follows an invisible anchor pinned to the player's LOGICAL
+      // tile position, not the (possibly elevated) sprite — otherwise the
+      // viewport jumps every time we step onto / off a stacked box.
+      if (!this.cameraAnchor) {
+        const bmd = this.state.add.bitmapData(1, 1);
+        this.cameraAnchor = this.state.add.sprite(0, 0, bmd);
+        this.cameraAnchor.alpha = 0;
+      }
+      this.state.camera.follow(this.cameraAnchor);
       this.applyRenderPosition();
 
       this.nameText = new NameText(this.state.add, this);
@@ -187,18 +196,30 @@ export default class Player {
     if (this.nameText) this.nameText.update();
   }
 
-  // Push logical → rendered: the sprite sits `elevationOffset` higher than
-  // its logical Y. Called after every position change so render and logic
-  // stay in sync without sprite.y carrying the elevation.
+  // Push logical → rendered: the sprite is shifted up + left to match the
+  // visual top of any box stack the player is on (boxes themselves render
+  // with -8sp × elevationIdx in BOTH axes). The camera anchor stays on the
+  // logical position so elevation never moves the viewport.
   applyRenderPosition() {
     if (!this.sprite) return;
-    this.sprite.x = this.logicalX;
-    this.sprite.y = this.logicalY - this.elevationOffset();
+    const off = this.elevationOffset();
+    this.sprite.x = this.logicalX - off;
+    this.sprite.y = this.logicalY - off;
+    if (this.cameraAnchor) {
+      this.cameraAnchor.x = this.logicalX;
+      this.cameraAnchor.y = this.logicalY;
+    }
   }
 
-  // Visual lift when standing on stacked hasElevation items (cap 3).
+  // How many sprite pixels the character should be shifted up + left when
+  // standing on stacked hasElevation items (cap MAX_ELEVATIONS_ON_HEAD).
+  // While moving we read the DESTINATION tile so the sprite lifts (or drops)
+  // the instant the step begins, rather than at arrival.
   elevationOffset() {
-    const tile = this.state.map && this.state.map.getTile(this.position.x, this.position.y);
+    if (!this.state.map) return 0;
+    const tx = this.moving ? this.movingPosition.x : this.position.x;
+    const ty = this.moving ? this.movingPosition.y : this.position.y;
+    const tile = this.state.map.getTile(tx, ty);
     if (!tile || typeof tile.elevationCount !== "function") return 0;
     return Math.min(MAX_ELEVATIONS_ON_HEAD, tile.elevationCount()) * ELEVATION_PIXELS * scale;
   }
