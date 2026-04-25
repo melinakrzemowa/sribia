@@ -188,6 +188,14 @@ export default class MainState extends Phaser.State {
       this.users.add(user);
     });
 
+    this.channel.on("item_object", (item) => {
+      this.map.addItem(item.x, item.y, item);
+    });
+
+    this.channel.on("item_removed", (item) => {
+      this.map.removeItem(item.x, item.y, item.instance_id);
+    });
+
     this.channel.on("user_left", (data) => {
       console.log("User left:", data);
       this.users.remove(data.user_id);

@@ -46,6 +46,18 @@ defmodule Abyss.Board do
     GenServer.call(__MODULE__, {:get_fields, position, range})
   end
 
+  def spawn_item(position, item_id, count \\ 1) do
+    GenServer.call(__MODULE__, {:spawn_item, position, item_id, count})
+  end
+
+  def get_items(position) do
+    GenServer.call(__MODULE__, {:get_items, position})
+  end
+
+  def get_item(id) do
+    GenServer.call(__MODULE__, {:get_item, id})
+  end
+
   # SERVER
 
   def handle_call({:get_position, type, object}, _from, %Container{} = container) do
@@ -95,5 +107,23 @@ defmodule Abyss.Board do
       end)
 
     {:reply, fields, container}
+  end
+
+  def handle_call({:spawn_item, position, item_id, count}, _from, %Container{} = container) do
+    {item, container} = Container.add_item(container, item_id, count)
+    container = Container.put(container, position, :item, item.id, false)
+    {:reply, {:ok, item}, container}
+  end
+
+  def handle_call({:get_items, pos}, _from, %Container{} = container) do
+    instances =
+      Container.get_field(container, pos, :item)
+      |> Enum.map(fn {{:item, id}, _blocks} -> Container.get_item(container, id) end)
+
+    {:reply, instances, container}
+  end
+
+  def handle_call({:get_item, id}, _from, %Container{} = container) do
+    {:reply, Container.get_item(container, id), container}
   end
 end

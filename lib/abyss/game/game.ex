@@ -32,7 +32,31 @@ defmodule Abyss.Game do
     Accounts.get_user!(id)
   end
 
+  defp load_object({{:item, id}, _blocks}) do
+    Board.get_item(id)
+  end
+
   defp load_object(object), do: object
+
+  def spawn_item({_x, _y} = position, item_id, count \\ 1) do
+    if can_place_on_tile?(position) do
+      Board.spawn_item(position, item_id, count)
+    else
+      {:error, :tile_blocked}
+    end
+  end
+
+  @doc """
+  Returns true if a movable item can be dropped on the tile at `{x, y}` on
+  the game level (z = 7). The tile is rejected when any of its env items is
+  an unpassable, unmoveable surface without `hasElevation` (trees, walls).
+  """
+  def can_place_on_tile?({x, y}) do
+    case Cachex.get(:map, {x, y, 7}) do
+      {:ok, %{items: items}} when is_list(items) -> Abyss.Items.can_place_on?(items)
+      _ -> true
+    end
+  end
 
   def move(user_id, direction) do
     user = Accounts.get_user!(user_id)

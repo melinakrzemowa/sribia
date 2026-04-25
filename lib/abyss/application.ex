@@ -10,6 +10,7 @@ defmodule Abyss.Application do
       Abyss.Repo,
       {Phoenix.PubSub, name: Abyss.PubSub},
       AbyssWeb.Endpoint,
+      Abyss.Items,
       Abyss.Board,
       {Registry, keys: :unique, name: Abyss.UserSessionRegistry},
       Abyss.UserSessionSupervisor

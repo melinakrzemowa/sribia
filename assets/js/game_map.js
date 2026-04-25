@@ -28,6 +28,14 @@ export default class GameMap {
     return tile.deleteObject(object);
   }
 
+  addItem(x, y, payload) {
+    return this.getTile(x, y).addItem(payload);
+  }
+
+  removeItem(x, y, instanceId) {
+    return this.getTile(x, y).removeItem(instanceId);
+  }
+
   loadTile(mapTile) {
     let tile = this.getTile(mapTile.x, mapTile.y);
 

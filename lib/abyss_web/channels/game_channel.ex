@@ -4,6 +4,7 @@ defmodule AbyssWeb.GameChannel do
   alias Abyss.Game
   alias Abyss.UserSession
   alias Abyss.Accounts.User
+  alias Abyss.Board.Item
 
   def join("game:lobby", _payload, socket) do
     if authorized?(socket) do
@@ -60,6 +61,10 @@ defmodule AbyssWeb.GameChannel do
     end
   end
 
+  defp push_object(socket, position, %Item{} = item) do
+    push(socket, "item_object", item_payload(item, position))
+  end
+
   defp push_object(_socket, _pos, _object), do: :ok
 
   defp user_payload(%User{} = user) do
@@ -72,6 +77,10 @@ defmodule AbyssWeb.GameChannel do
       health: user.health,
       max_health: user.max_health
     }
+  end
+
+  defp item_payload(%Item{} = item, {x, y}) do
+    %{instance_id: item.id, item_id: item.item_id, count: item.count, x: x, y: y}
   end
 
   # It is also common to receive messages from the client and
