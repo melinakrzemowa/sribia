@@ -87,11 +87,10 @@ defmodule Abyss.Game do
   defp adjacent?({ax, ay}, {bx, by}), do: abs(ax - bx) <= 1 and abs(ay - by) <= 1
 
   @doc """
-  Bresenham line-of-sight from `from` to `to`, treating tiles with an
-  unpassable env item (no `hasElevation`) as opaque. For diagonal steps
-  we apply the Tibia-style rule: the diagonal is blocked only if BOTH
-  orthogonal companion cells are blocked, so a tree on one side still
-  lets you slip past on the other diagonal.
+  Bresenham line-of-sight from `from` to `to`. A tile that lies *on* the
+  line counts as opaque if its env items include an unpassable item without
+  `hasElevation`. We do not apply the corner-cut rule — a diagonal between
+  two trees that is otherwise clear is allowed.
   """
   def line_of_sight?(from, to) do
     line_clear?(from, to)
@@ -112,34 +111,18 @@ defmodule Abyss.Game do
     e2 = 2 * err
     step_x? = e2 >= dy
     step_y? = e2 <= dx
+    {nx, ny, new_err} =
+      cond do
+        step_x? and step_y? -> {x0 + sx, y0 + sy, err + dy + dx}
+        step_x? -> {x0 + sx, y0, err + dy}
+        step_y? -> {x0, y0 + sy, err + dx}
+        true -> {x0, y0, err}
+      end
+
     cond do
-      step_x? and step_y? ->
-        nx = x0 + sx
-        ny = y0 + sy
-        # Diagonal: blocked only if both ortho cells are blocked.
-        if blocks_los?({x0 + sx, y0}) and blocks_los?({x0, y0 + sy}) do
-          false
-        else
-          # The diagonal target itself must be clear (unless it's the endpoint).
-          if {nx, ny} != {x1, y1} and blocks_los?({nx, ny}) do
-            false
-          else
-            walk_los(nx, ny, x1, y1, sx, sy, dx, dy, err + dy + dx)
-          end
-        end
-
-      step_x? ->
-        nx = x0 + sx
-        if {nx, y0} != {x1, y1} and blocks_los?({nx, y0}), do: false,
-          else: walk_los(nx, y0, x1, y1, sx, sy, dx, dy, err + dy)
-
-      step_y? ->
-        ny = y0 + sy
-        if {x0, ny} != {x1, y1} and blocks_los?({x0, ny}), do: false,
-          else: walk_los(x0, ny, x1, y1, sx, sy, dx, dy, err + dx)
-
-      true ->
-        true
+      {nx, ny} == {x1, y1} -> true
+      blocks_los?({nx, ny}) -> false
+      true -> walk_los(nx, ny, x1, y1, sx, sy, dx, dy, new_err)
     end
   end
 
