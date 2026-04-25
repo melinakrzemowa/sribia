@@ -83,6 +83,20 @@ defmodule AbyssWeb.GameChannel do
     %{instance_id: item.id, item_id: item.item_id, count: item.count, x: x, y: y}
   end
 
+  def handle_in("move_item", %{"instance_id" => id, "x" => x, "y" => y}, socket) do
+    user_id = socket.assigns[:user_id]
+
+    case Game.move_item(user_id, id, {x, y}) do
+      {:ok, item, {old_x, old_y}, {new_x, new_y}} ->
+        broadcast(socket, "item_removed", %{instance_id: item.id, x: old_x, y: old_y})
+        broadcast(socket, "item_object", item_payload(item, {new_x, new_y}))
+        {:reply, :ok, socket}
+
+      {:error, reason} ->
+        {:reply, {:error, %{reason: to_string(reason)}}, socket}
+    end
+  end
+
   # It is also common to receive messages from the client and
   # broadcast to everyone in the current topic (game:lobby).
   def handle_in("move", %{"direction" => direction}, socket) do

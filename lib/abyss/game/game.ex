@@ -58,6 +58,41 @@ defmodule Abyss.Game do
     end
   end
 
+  @doc """
+  Move the top item at the source tile (where the item lives) to `new_pos`.
+
+  Validates:
+    - the item exists
+    - the user is within one tile of both source and destination
+    - the item's definition is not `isUnmoveable`
+    - the destination tile accepts placement (no tree/wall env items)
+    - the item is the top of its source stack (Board does this last check)
+  """
+  def move_item(user_id, instance_id, {_x, _y} = new_pos) do
+    with %Abyss.Board.Item{} = item <- Board.get_item(instance_id),
+         old_pos when not is_nil(old_pos) <- Board.get_position(:item, instance_id),
+         user <- Accounts.get_user!(user_id),
+         true <- adjacent?({user.x, user.y}, old_pos) || {:error, :too_far_from_source},
+         true <- adjacent?({user.x, user.y}, new_pos) || {:error, :too_far_from_dest},
+         true <- movable?(item) || {:error, :unmoveable},
+         true <- can_place_on_tile?(new_pos) || {:error, :tile_blocked} do
+      Board.move_item(instance_id, new_pos)
+    else
+      nil -> {:error, :not_found}
+      {:error, _reason} = err -> err
+      false -> {:error, :invalid}
+    end
+  end
+
+  defp adjacent?({ax, ay}, {bx, by}), do: abs(ax - bx) <= 1 and abs(ay - by) <= 1
+
+  defp movable?(%Abyss.Board.Item{item_id: item_id}) do
+    case Abyss.Items.get(item_id) do
+      nil -> true
+      props -> props["isUnmoveable"] != true
+    end
+  end
+
   def move(user_id, direction) do
     user = Accounts.get_user!(user_id)
     base_move_time = round(100_000 / (2 * (user.speed - 1) + 180))

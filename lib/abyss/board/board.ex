@@ -58,6 +58,10 @@ defmodule Abyss.Board do
     GenServer.call(__MODULE__, {:get_item, id})
   end
 
+  def move_item(id, new_pos) do
+    GenServer.call(__MODULE__, {:move_item, id, new_pos})
+  end
+
   # SERVER
 
   def handle_call({:get_position, type, object}, _from, %Container{} = container) do
@@ -125,5 +129,34 @@ defmodule Abyss.Board do
 
   def handle_call({:get_item, id}, _from, %Container{} = container) do
     {:reply, Container.get_item(container, id), container}
+  end
+
+  @doc """
+  Move an item instance from its current tile to `new_pos`. Returns
+  `{:ok, item, old_pos, new_pos}` on success or `{:error, reason}`.
+
+  This call expects the caller to have validated:
+    - the item exists on the board
+    - it is the top of its source stack
+    - the destination tile accepts placement
+    - the user requesting the move can reach both tiles
+  """
+  def handle_call({:move_item, id, new_pos}, _from, %Container{} = container) do
+    case Container.get_position(container, :item, id) do
+      nil ->
+        {:reply, {:error, :not_found}, container}
+
+      old_pos ->
+        # Top of stack = head of the field list since Container.put prepends.
+        case Container.get_field(container, old_pos, :item) do
+          [{{:item, ^id}, _blocks} | _] ->
+            container = Container.move(container, new_pos, :item, id)
+            item = Container.get_item(container, id)
+            {:reply, {:ok, item, old_pos, new_pos}, container}
+
+          _ ->
+            {:reply, {:error, :not_top_of_stack}, container}
+        end
+    end
   end
 end
