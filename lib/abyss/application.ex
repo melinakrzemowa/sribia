@@ -22,6 +22,7 @@ defmodule Abyss.Application do
     supervisor = Supervisor.start_link(children, opts)
 
     Abyss.Game.MapLoader.load_cache()
+    Abyss.Board.reseed_from_cache()
 
     supervisor
   end

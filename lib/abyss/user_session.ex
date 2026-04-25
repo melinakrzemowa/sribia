@@ -151,12 +151,16 @@ defmodule Abyss.UserSession do
           user -> Equipment.from_persisted(user.equipment || %{})
         end
       rescue
-        # In tests UserSessions can be started by processes that don't own the
-        # SQL sandbox; equipment load fails harmlessly with an empty map.
+        # In tests UserSessions can be started by processes that don't own
+        # the SQL sandbox; equipment load fails harmlessly with an empty map.
         DBConnection.OwnershipError -> %{}
         e ->
           Logger.warning("UserSession #{state.user_id} could not load equipment: #{inspect(e)}")
           %{}
+      catch
+        # Same protection for the case where the sandbox owner exits while
+        # the load query is in flight (manifests as `:exit` on Repo.get).
+        :exit, _ -> %{}
       end
 
     {:noreply, %{state | equipment: equipment}}

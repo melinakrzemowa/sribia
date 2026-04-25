@@ -32,6 +32,65 @@ defmodule Abyss.Items do
     Enum.all?(env_items, &allows_placement?/1)
   end
 
+  @doc """
+  Returns true when an item embedded in the static map JSON should be turned
+  into a real Board item (movable, pickupable, draggable) rather than a baked-in
+  decoration sprite.
+
+  Rule: not flagged `isUnmoveable`, single-tile (we don't move multi-tile
+  pieces), AND looks like a "thing" — pickupable (gold, food, weapons),
+  hasElevation (boxes, barrels, dropped chests) or isUnpassable (single-tile
+  statues, plant pots that can be pushed but not stuffed in a backpack).
+  """
+  def loose?(%{"id" => id}), do: loose?(id)
+
+  def loose?(id) when is_integer(id) or is_binary(id) do
+    case get(id) do
+      nil -> false
+      props -> loose_props?(props)
+    end
+  end
+
+  def loose_props?(props) when is_map(props) do
+    cond do
+      props["isUnmoveable"] == true -> false
+      not single_tile?(props) -> false
+      props["pickupable"] == true -> true
+      props["hasElevation"] == true -> true
+      props["isUnpassable"] == true -> true
+      true -> false
+    end
+  end
+
+  def loose_props?(_), do: false
+
+  @doc """
+  An item that physically blocks movement / LOS at the tile it currently
+  occupies. Items with `hasElevation` (boxes, tables) don't block — you can
+  walk across them.
+  """
+  def blocks?(%{"id" => id}), do: blocks?(id)
+
+  def blocks?(id) when is_integer(id) or is_binary(id) do
+    case get(id) do
+      nil -> false
+      props -> blocks_props?(props)
+    end
+  end
+
+  def blocks_props?(props) when is_map(props) do
+    props["isUnpassable"] == true and props["hasElevation"] != true
+  end
+
+  def blocks_props?(_), do: false
+
+  defp single_tile?(props) do
+    case List.first(props["groups"] || []) do
+      %{"width" => w, "height" => h} -> w == 1 and h == 1
+      _ -> true
+    end
+  end
+
   defp allows_placement?(%{"id" => id}), do: allows_placement?(id)
   defp allows_placement?(id) when is_integer(id) or is_binary(id) do
     case get(id) do

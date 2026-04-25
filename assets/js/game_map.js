@@ -92,11 +92,12 @@ export default class GameMap {
         let tile = this.getTile(mapTile.x, mapTile.y);
 
         tile.createEnv(items[item.id]);
-        tile.blocks = tile.blocks || !!items[item.id].isUnpassable;
+        tile.staticBlocks = tile.staticBlocks || !!items[item.id].isUnpassable;
       });
     }
 
     tile.loaded = true;
+    tile.recomputeBlocks();
   }
 
   getTile(x, y) {

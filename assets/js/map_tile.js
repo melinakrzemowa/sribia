@@ -10,6 +10,12 @@ export default class MapTile {
 
     this.x = x;
     this.y = y;
+    // staticBlocks: true if any baked-in env item on this tile is an
+    //   unpassable wall/tree (set once during loadTile).
+    // blocks: combined view used by pathfinding; recomputed whenever items
+    //   change so a movable statue dropped on a tile gates pathfind there
+    //   and the tile becomes walkable again once it's removed.
+    this.staticBlocks = false;
     this.blocks = false;
     this.envSprites = [];
     this.objects = [];
@@ -17,6 +23,16 @@ export default class MapTile {
     this.items = [];          // raw payloads {instance_id, item_id, count}
     this.itemSprites = [];    // Phaser sprites currently rendering `this.items`
     this.loaded = false;
+  }
+
+  // Recompute `blocks` from `staticBlocks` plus any movable items currently
+  // on the tile that are themselves unpassable (e.g. a statue).
+  recomputeBlocks() {
+    const dynamic = this.items.some((it) => {
+      const def = items[String(it.item_id)];
+      return def && def.isUnpassable === true && def.hasElevation !== true;
+    });
+    this.blocks = this.staticBlocks || dynamic;
   }
 
   getSpriteIndex(group, w, h, l, x, y, z, f) {
@@ -99,12 +115,16 @@ export default class MapTile {
     if (this.items.find((it) => it.instance_id === payload.instance_id)) return;
     this.items.push(payload);
     this._renderItems();
+    this.recomputeBlocks();
   }
 
   removeItem(instanceId) {
     const before = this.items.length;
     this.items = this.items.filter((it) => it.instance_id !== instanceId);
-    if (this.items.length !== before) this._renderItems();
+    if (this.items.length !== before) {
+      this._renderItems();
+      this.recomputeBlocks();
+    }
   }
 
   _renderItems() {

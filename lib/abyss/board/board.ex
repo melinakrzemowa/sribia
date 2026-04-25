@@ -8,9 +8,12 @@ defmodule Abyss.Board do
   ]
   """
   use GenServer
+  require Logger
   alias Abyss.Board.{Container, Directions, Moves}
 
   @starting_position {32097, 32219}
+  # Game level on which loose items live in the static map.
+  @map_z 7
 
   # CLIENT
 
@@ -19,7 +22,19 @@ defmodule Abyss.Board do
   end
 
   def init(state) do
-    {:ok, state}
+    # Re-seed loose items from the Cachex map on every (re)start. On the very
+    # first boot Cachex is still empty when Board.init runs, so this is a
+    # no-op then; Application.start triggers a reseed once MapLoader is done.
+    {:ok, state, {:continue, :seed_map_items}}
+  end
+
+  @doc """
+  Walk the Cachex map and (re-)spawn every loose item embedded in it as a
+  real Board item. Skips items that are already represented as Board items
+  on the same tile (so calling this multiple times is idempotent).
+  """
+  def reseed_from_cache do
+    GenServer.cast(__MODULE__, :seed_map_items)
   end
 
   def get_position(type, object) do
@@ -131,7 +146,7 @@ defmodule Abyss.Board do
 
   def handle_call({:spawn_item, position, item_id, count}, _from, %Container{} = container) do
     {item, container} = Container.add_item(container, item_id, count)
-    container = Container.put(container, position, :item, item.id, false)
+    container = Container.put(container, position, :item, item.id, Abyss.Items.blocks?(item_id))
     {:reply, {:ok, item}, container}
   end
 
@@ -154,8 +169,9 @@ defmodule Abyss.Board do
       nil ->
         {:reply, {:error, :not_found}, container}
 
-      _item ->
-        container = Container.put(container, position, :item, id, false)
+      %{item_id: item_id} ->
+        blocks = Abyss.Items.blocks?(item_id)
+        container = Container.put(container, position, :item, id, blocks)
         {:reply, :ok, container}
     end
   end
@@ -212,4 +228,59 @@ defmodule Abyss.Board do
         end
     end
   end
+
+  def handle_continue(:seed_map_items, %Container{} = container) do
+    {:noreply, do_seed_map_items(container)}
+  end
+
+  def handle_cast(:seed_map_items, %Container{} = container) do
+    {:noreply, do_seed_map_items(container)}
+  end
+
+  # Walk the Cachex map and spawn a fresh Item for every loose entry on each
+  # tile that doesn't already have a Board item there. Pure container work
+  # so we don't recurse through GenServer.call from inside our own process.
+  defp do_seed_map_items(%Container{} = container) do
+    initial_count = map_size(container.items)
+    # Default Cachex.stream! returns entries with nil values; ask for {key, value}.
+    query = Cachex.Query.build(output: {:key, :value})
+
+    new_container =
+      :map
+      |> Cachex.stream!(query)
+      |> Enum.reduce(container, fn
+        {{x, y, @map_z}, value}, acc -> seed_tile(acc, {x, y}, value)
+        _, acc -> acc
+      end)
+
+    spawned = map_size(new_container.items) - initial_count
+
+    if spawned > 0 do
+      Logger.info("Board: seeded #{spawned} loose map items")
+    end
+
+    new_container
+  end
+
+  defp seed_tile(container, pos, %{items: items}) when is_list(items) do
+    # Only seed if the tile has no Board items yet — keeps the operation
+    # idempotent so a manual reseed during dev / a Board crash recovery
+    # don't double-spawn.
+    case Container.get_field(container, pos, :item) do
+      [] ->
+        Enum.reduce(items, container, fn item_def, acc ->
+          if Abyss.Items.loose?(item_def) do
+            {item, acc} = Container.add_item(acc, item_def["id"], 1)
+            Container.put(acc, pos, :item, item.id, Abyss.Items.blocks?(item_def))
+          else
+            acc
+          end
+        end)
+
+      _ ->
+        container
+    end
+  end
+
+  defp seed_tile(container, _pos, _value), do: container
 end
