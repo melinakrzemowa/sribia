@@ -1,5 +1,8 @@
-import { field } from "./globals";
+import { field, scale } from "./globals";
 import NameText from "./names";
+
+const MAX_ELEVATIONS_ON_HEAD = 3;
+const ELEVATION_PIXELS = 8; // sprite-pixel offset per stacked elevated item
 
 export default class Player {
   constructor(state) {
@@ -169,7 +172,14 @@ export default class Player {
 
   fixPosition() {
     this.sprite.x = this.position.x * field;
-    this.sprite.y = this.position.y * field;
+    this.sprite.y = this.position.y * field - this.elevationOffset();
     this.nameText.update();
+  }
+
+  // Visual lift when standing on stacked hasElevation items (cap 3).
+  elevationOffset() {
+    const tile = this.state.map && this.state.map.getTile(this.position.x, this.position.y);
+    if (!tile || typeof tile.elevationCount !== "function") return 0;
+    return Math.min(MAX_ELEVATIONS_ON_HEAD, tile.elevationCount()) * ELEVATION_PIXELS * scale;
   }
 }

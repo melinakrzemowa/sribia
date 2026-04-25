@@ -175,7 +175,15 @@ export default class MainState extends Phaser.State {
 
     // Click-to-move: queue of tile targets ({x, y}) for the player to walk through.
     this.clickPath = [];
-    this.input.onDown.add(this.onWorldClick, this);
+    // Tracks a pointer press until release. We only commit to "this is an
+    // item drag" once the cursor moves past DRAG_THRESHOLD pixels — a plain
+    // click on an item tile still triggers click-to-move.
+    this.pendingPress = null;
+    this.itemDrag = null;
+    this.DRAG_THRESHOLD = 6;
+    this.input.onDown.add(this.onWorldDown, this);
+    this.input.onUp.add(this.onWorldUp, this);
+    this.input.addMoveCallback(this.onWorldMove, this);
 
     // Join channels to listen on events from backend
     this.channel.on("move", (user) => {
@@ -190,10 +198,12 @@ export default class MainState extends Phaser.State {
 
     this.channel.on("item_object", (item) => {
       this.map.addItem(item.x, item.y, item);
+      this.refreshPlayerElevationIfOn(item.x, item.y);
     });
 
     this.channel.on("item_removed", (item) => {
       this.map.removeItem(item.x, item.y, item.instance_id);
+      this.refreshPlayerElevationIfOn(item.x, item.y);
     });
 
     this.channel.on("user_left", (data) => {
@@ -400,36 +410,94 @@ export default class MainState extends Phaser.State {
     }
   }
 
-  // Translate a world pointer click into a tile path via A* and start walking.
-  // Clicks on the sidebar / chat area are ignored; the pointer position has
-  // already been fired from those regions by their own input sprites.
-  onWorldClick(pointer) {
-    if (!this.player || !this.player.joined) return;
-    // Only left mouse button / touch (ignore right-click).
-    if (pointer.rightButton && pointer.rightButton.isDown) return;
-    // Skip clicks outside the tile viewport (sidebar, chat).
-    if (pointer.x >= this.camera.width) return;
-    if (pointer.y >= this.camera.height) return;
-    // If the click landed on an interactive item sprite, treat it as the
-    // start of a drag and don't path-walk to the tile underneath.
-    const target = pointer.targetObject && pointer.targetObject.sprite;
-    if (target && target.gameObject && target.gameObject.type === "item") return;
-
-    // The pointer's screen coords are in canvas pixels; add camera scroll to
-    // get world pixels. Don't use `input.worldX` because it reads from a
-    // separate `input.x` that isn't always synced with the active pointer.
+  // Convert a screen-space pointer into the tile under it, accounting for
+  // the camera scroll.
+  pointerTile(pointer) {
     const worldX = pointer.x + this.camera.x;
     const worldY = pointer.y + this.camera.y;
-    const tx = Math.round(worldX / field);
-    const ty = Math.round(worldY / field);
-    if (tx === this.player.position.x && ty === this.player.position.y) return;
+    return { x: Math.round(worldX / field), y: Math.round(worldY / field) };
+  }
 
+  // Mouse down — remember the press; defer click-to-move and item-drag
+  // decisions until the user either releases (click) or moves the pointer
+  // (drag).
+  onWorldDown(pointer) {
+    if (!this.player || !this.player.joined) return;
+    if (pointer.rightButton && pointer.rightButton.isDown) return;
+    if (pointer.x >= this.camera.width) return;
+    if (pointer.y >= this.camera.height) return;
+
+    const tile = this.pointerTile(pointer);
+    this.pendingPress = {
+      screenX: pointer.x,
+      screenY: pointer.y,
+      tile,
+    };
+  }
+
+  // Pointer move while a press is in progress — promote to an item-drag if
+  // the cursor moves past DRAG_THRESHOLD AND the original tile has items.
+  onWorldMove(pointer) {
+    if (!this.pendingPress || this.itemDrag) return;
+    if (!pointer.isDown) return;
+    const dx = pointer.x - this.pendingPress.screenX;
+    const dy = pointer.y - this.pendingPress.screenY;
+    if (dx * dx + dy * dy < this.DRAG_THRESHOLD * this.DRAG_THRESHOLD) return;
+    const { x: tx, y: ty } = this.pendingPress.tile;
+    const tile = this.map.getTile(tx, ty);
+    if (!tile || !tile.items || tile.items.length === 0) return;
+    const top = tile.topItem();
+    this.itemDrag = { instance_id: top.instance_id, source: { x: tx, y: ty } };
+    this.game.canvas.style.cursor = "crosshair";
+  }
+
+  // Mouse up — either finalise an item drag, or treat the press as a plain
+  // click (click-to-move).
+  onWorldUp(pointer) {
+    if (this.itemDrag) {
+      const drag = this.itemDrag;
+      this.itemDrag = null;
+      this.pendingPress = null;
+      this.game.canvas.style.cursor = "default";
+      const { x: tx, y: ty } = this.pointerTile(pointer);
+      if (tx === drag.source.x && ty === drag.source.y) return;
+      if (!this.channel) return;
+      this.channel.push("move_item", {
+        instance_id: drag.instance_id,
+        x: tx,
+        y: ty,
+      });
+      return;
+    }
+
+    if (!this.pendingPress) return;
+    const press = this.pendingPress;
+    this.pendingPress = null;
+    const { x: tx, y: ty } = this.pointerTile(pointer);
+    // Treat as a click only if released on the same tile and the player
+    // isn't already there.
+    if (tx !== press.tile.x || ty !== press.tile.y) return;
+    if (tx === this.player.position.x && ty === this.player.position.y) return;
     const path = findPath(
       this.player.position,
       { x: tx, y: ty },
       (x, y) => this.map.isBlocked(x, y)
     );
     if (path && path.length > 0) this.clickPath = path;
+  }
+
+  // Re-fix the player's sprite Y when an item arrives or leaves their tile,
+  // so they snap up/down by elevation steps as boxes appear or disappear.
+  refreshPlayerElevationIfOn(x, y) {
+    if (
+      this.player &&
+      this.player.joined &&
+      !this.player.moving &&
+      this.player.position.x === x &&
+      this.player.position.y === y
+    ) {
+      this.player.fixPosition();
+    }
   }
 
   // If there's an active click path, derive the next-step direction toward its
@@ -513,6 +581,7 @@ export default class MainState extends Phaser.State {
         }
 
         if (aPosition.y == bPosition.y) {
+          // isOnTop env layer (signs/letters) renders above the character
           if (
             aPosition.isCharacter &&
             !bPosition.isCharacter &&
@@ -525,6 +594,10 @@ export default class MainState extends Phaser.State {
             a.gameObject.isOnTop
           )
             return 1;
+
+          // Otherwise the character renders above ground items on the same tile.
+          if (aPosition.isCharacter && !bPosition.isCharacter) return 1;
+          if (bPosition.isCharacter && !aPosition.isCharacter) return -1;
 
           return 0;
         }

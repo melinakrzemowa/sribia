@@ -72,8 +72,8 @@ defmodule Abyss.Game do
     with %Abyss.Board.Item{} = item <- Board.get_item(instance_id),
          old_pos when not is_nil(old_pos) <- Board.get_position(:item, instance_id),
          user <- Accounts.get_user!(user_id),
-         true <- adjacent?({user.x, user.y}, old_pos) || {:error, :too_far_from_source},
-         true <- adjacent?({user.x, user.y}, new_pos) || {:error, :too_far_from_dest},
+         true <- line_of_sight?({user.x, user.y}, old_pos) || {:error, :no_los_to_source},
+         true <- line_of_sight?({user.x, user.y}, new_pos) || {:error, :no_los_to_dest},
          true <- movable?(item) || {:error, :unmoveable},
          true <- can_place_on_tile?(new_pos) || {:error, :tile_blocked} do
       Board.move_item(instance_id, new_pos)
@@ -84,7 +84,49 @@ defmodule Abyss.Game do
     end
   end
 
-  defp adjacent?({ax, ay}, {bx, by}), do: abs(ax - bx) <= 1 and abs(ay - by) <= 1
+  @doc """
+  Returns true if the straight-line path from `from` to `to` (sampled at
+  every integer tile in between) is clear of unpassable env items. Tiles
+  with `hasElevation` (tables) are passable for line-of-sight. Endpoints
+  are not checked.
+  """
+  def line_of_sight?(from, to) do
+    if from == to do
+      true
+    else
+      tiles_between(from, to)
+      |> Enum.all?(fn pos -> not blocks_los?(pos) end)
+    end
+  end
+
+  defp tiles_between({x1, y1}, {x2, y2}) do
+    dx = x2 - x1
+    dy = y2 - y1
+    steps = max(abs(dx), abs(dy))
+    if steps <= 1 do
+      []
+    else
+      Enum.map(1..(steps - 1), fn i ->
+        t = i / steps
+        {round(x1 + t * dx), round(y1 + t * dy)}
+      end)
+      |> Enum.uniq()
+    end
+  end
+
+  defp blocks_los?({x, y}) do
+    case Cachex.get(:map, {x, y, 7}) do
+      {:ok, %{items: items}} when is_list(items) ->
+        Enum.any?(items, fn %{"id" => id} ->
+          case Abyss.Items.get(id) do
+            %{"isUnpassable" => true} = props -> props["hasElevation"] != true
+            _ -> false
+          end
+        end)
+      _ ->
+        false
+    end
+  end
 
   defp movable?(%Abyss.Board.Item{item_id: item_id}) do
     case Abyss.Items.get(item_id) do
