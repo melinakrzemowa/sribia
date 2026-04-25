@@ -38,9 +38,19 @@ defmodule Abyss.Game do
 
   defp load_object(object), do: object
 
-  def spawn_item({_x, _y} = position, item_id, count \\ 1) do
+  def spawn_item({x, y} = position, item_id, count \\ 1) do
     if can_place_on_tile?(position) do
-      Board.spawn_item(position, item_id, count)
+      with {:ok, item} <- Board.spawn_item(position, item_id, count) do
+        AbyssWeb.Endpoint.broadcast("game:lobby", "item_object", %{
+          instance_id: item.id,
+          item_id: item.item_id,
+          count: item.count,
+          x: x,
+          y: y
+        })
+
+        {:ok, item}
+      end
     else
       {:error, :tile_blocked}
     end
@@ -73,7 +83,9 @@ defmodule Abyss.Game do
          old_pos when not is_nil(old_pos) <- Board.get_position(:item, instance_id),
          user <- Accounts.get_user!(user_id),
          true <- adjacent?({user.x, user.y}, old_pos) || {:error, :too_far_from_source},
-         true <- line_of_sight?(old_pos, new_pos) || {:error, :no_los},
+         # Same rule as TFS: LOS is checked from the PLAYER's tile to the
+         # destination, not from the item's source.
+         true <- line_of_sight?({user.x, user.y}, new_pos) || {:error, :no_los},
          true <- movable?(item) || {:error, :unmoveable},
          true <- can_place_on_tile?(new_pos) || {:error, :tile_blocked} do
       Board.move_item(instance_id, new_pos)
@@ -87,42 +99,64 @@ defmodule Abyss.Game do
   defp adjacent?({ax, ay}, {bx, by}), do: abs(ax - bx) <= 1 and abs(ay - by) <= 1
 
   @doc """
-  Bresenham line-of-sight from `from` to `to`. A tile that lies *on* the
-  line counts as opaque if its env items include an unpassable item without
-  `hasElevation`. We do not apply the corner-cut rule — a diagonal between
-  two trees that is otherwise clear is allowed.
+  Line-of-sight check matching the TFS server algorithm. Auto-clear when the
+  endpoints are within 1 tile of each other; otherwise walk a slope-based
+  DDA along the longer axis (steep when |dy| > |dx|, slight otherwise) and
+  reject the move if any intermediate tile blocks projectiles.
   """
-  def line_of_sight?(from, to) do
-    line_clear?(from, to)
-  end
-
-  defp line_clear?({x1, y1}, {x2, y2}) when {x1, y1} == {x2, y2}, do: true
-  defp line_clear?({x1, y1}, {x2, y2}) do
-    dx = abs(x2 - x1)
-    sx = if x1 < x2, do: 1, else: -1
-    dy = -abs(y2 - y1)
-    sy = if y1 < y2, do: 1, else: -1
-    err = dx + dy
-    walk_los(x1, y1, x2, y2, sx, sy, dx, dy, err)
-  end
-
-  defp walk_los(x, y, x, y, _sx, _sy, _dx, _dy, _err), do: true
-  defp walk_los(x0, y0, x1, y1, sx, sy, dx, dy, err) do
-    e2 = 2 * err
-    step_x? = e2 >= dy
-    step_y? = e2 <= dx
-    {nx, ny, new_err} =
-      cond do
-        step_x? and step_y? -> {x0 + sx, y0 + sy, err + dy + dx}
-        step_x? -> {x0 + sx, y0, err + dy}
-        step_y? -> {x0, y0 + sy, err + dx}
-        true -> {x0, y0, err}
-      end
-
+  def line_of_sight?({x1, y1} = from, {x2, y2} = to) do
     cond do
-      {nx, ny} == {x1, y1} -> true
-      blocks_los?({nx, ny}) -> false
-      true -> walk_los(nx, ny, x1, y1, sx, sy, dx, dy, new_err)
+      from == to -> true
+      abs(x1 - x2) < 2 and abs(y1 - y2) < 2 -> true
+      true -> check_sight_line(x1, y1, x2, y2)
+    end
+  end
+
+  defp check_sight_line(x0, y0, x1, y1) do
+    if abs(y1 - y0) > abs(x1 - x0) do
+      if y1 > y0 do
+        check_steep_line(y0, x0, y1, x1)
+      else
+        check_steep_line(y1, x1, y0, x0)
+      end
+    else
+      if x0 > x1 do
+        check_slight_line(x1, y1, x0, y0)
+      else
+        check_slight_line(x0, y0, x1, y1)
+      end
+    end
+  end
+
+  # Slight: |dx| >= |dy|. Iterate x; the line's y at each x is interpolated.
+  defp check_slight_line(x0, y0, x1, y1) do
+    dx = x1 - x0
+    slope = if dx == 0, do: 1.0, else: (y1 - y0) / dx
+    walk_slight(x0 + 1, x1, y0 + slope, slope)
+  end
+
+  defp walk_slight(x, x1, _yi, _slope) when x >= x1, do: true
+  defp walk_slight(x, x1, yi, slope) do
+    if blocks_los?({x, trunc(yi + 0.1)}) do
+      false
+    else
+      walk_slight(x + 1, x1, yi + slope, slope)
+    end
+  end
+
+  # Steep: |dy| > |dx|. Iterate y (passed as the first arg) and interpolate x.
+  defp check_steep_line(y0, x0, y1, x1) do
+    dy = y1 - y0
+    slope = if dy == 0, do: 1.0, else: (x1 - x0) / dy
+    walk_steep(y0 + 1, y1, x0 + slope, slope)
+  end
+
+  defp walk_steep(y, y1, _xi, _slope) when y >= y1, do: true
+  defp walk_steep(y, y1, xi, slope) do
+    if blocks_los?({trunc(xi + 0.1), y}) do
+      false
+    else
+      walk_steep(y + 1, y1, xi + slope, slope)
     end
   end
 
