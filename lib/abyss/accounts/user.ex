@@ -11,6 +11,7 @@ defmodule Abyss.Accounts.User do
     field :last_move, :naive_datetime
     field :health, :integer, default: 100
     field :max_health, :integer, default: 100
+    field :equipment, :map, default: %{}
 
     timestamps()
   end
@@ -18,7 +19,7 @@ defmodule Abyss.Accounts.User do
   @doc false
   def changeset(%User{} = user, attrs) do
     user
-    |> cast(attrs, [:name, :x, :y, :speed, :last_move, :health, :max_health])
+    |> cast(attrs, [:name, :x, :y, :speed, :last_move, :health, :max_health, :equipment])
     |> validate_required([:name])
   end
 end

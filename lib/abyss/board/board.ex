@@ -50,6 +50,22 @@ defmodule Abyss.Board do
     GenServer.call(__MODULE__, {:spawn_item, position, item_id, count})
   end
 
+  def register_item(item_id, count \\ 1) do
+    GenServer.call(__MODULE__, {:register_item, item_id, count})
+  end
+
+  def remove_item(id) do
+    GenServer.call(__MODULE__, {:remove_item, id})
+  end
+
+  def place_item(id, position) do
+    GenServer.call(__MODULE__, {:place_item, id, position})
+  end
+
+  def detach_item(id) do
+    GenServer.call(__MODULE__, {:detach_item, id})
+  end
+
   def get_items(position) do
     GenServer.call(__MODULE__, {:get_items, position})
   end
@@ -117,6 +133,43 @@ defmodule Abyss.Board do
     {item, container} = Container.add_item(container, item_id, count)
     container = Container.put(container, position, :item, item.id, false)
     {:reply, {:ok, item}, container}
+  end
+
+  def handle_call({:register_item, item_id, count}, _from, %Container{} = container) do
+    {item, container} = Container.add_item(container, item_id, count)
+    {:reply, {:ok, item}, container}
+  end
+
+  def handle_call({:remove_item, id}, _from, %Container{} = container) do
+    container =
+      container
+      |> Container.delete(:item, id)
+      |> Container.remove_item(id)
+
+    {:reply, :ok, container}
+  end
+
+  def handle_call({:place_item, id, position}, _from, %Container{} = container) do
+    case Container.get_item(container, id) do
+      nil ->
+        {:reply, {:error, :not_found}, container}
+
+      _item ->
+        container = Container.put(container, position, :item, id, false)
+        {:reply, :ok, container}
+    end
+  end
+
+  def handle_call({:detach_item, id}, _from, %Container{} = container) do
+    case Container.get_item(container, id) do
+      nil ->
+        {:reply, {:error, :not_found}, container}
+
+      _ ->
+        old_pos = Container.get_position(container, :item, id)
+        container = Container.delete(container, :item, id)
+        {:reply, {:ok, old_pos}, container}
+    end
   end
 
   def handle_call({:get_items, pos}, _from, %Container{} = container) do

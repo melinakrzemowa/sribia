@@ -38,6 +38,11 @@ defmodule Abyss.Accounts do
   def get_user!(id), do: Repo.get!(User, id)
 
   @doc """
+  Gets a user by id, returning nil if not found.
+  """
+  def get_user(id), do: Repo.get(User, id)
+
+  @doc """
   Gets or creates user and puts it into session.
   """
   def authorize(conn, name) do

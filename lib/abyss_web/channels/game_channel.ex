@@ -45,6 +45,8 @@ defmodule AbyssWeb.GameChannel do
       end)
     end)
 
+    push(socket, "equipment", equipment_payload(user.id))
+
     {:noreply, socket}
   end
 
@@ -102,6 +104,49 @@ defmodule AbyssWeb.GameChannel do
     end
   end
 
+  def handle_in("equip_item", %{"instance_id" => id, "slot" => slot_str}, socket) do
+    user_id = socket.assigns[:user_id]
+
+    with slot when is_atom(slot) <- safe_slot(slot_str),
+         {:ok, result} <- Game.equip_item(user_id, id, slot) do
+      case result do
+        %{from_slot: from_slot} when not is_nil(from_slot) ->
+          # Slot → slot move: nothing on the world changed, just push the
+          # updated equipment map back to the player.
+          push(socket, "equipment", equipment_payload(user_id))
+          {:reply, :ok, socket}
+
+        %{equipped: item, source_pos: {sx, sy}, displaced: displaced} ->
+          broadcast(socket, "item_removed", %{instance_id: item.id, x: sx, y: sy})
+
+          if displaced do
+            # Displaced item drops on the tile the new one came from.
+            broadcast(socket, "item_object", item_payload(displaced, {sx, sy}))
+          end
+
+          push(socket, "equipment", equipment_payload(user_id))
+          {:reply, :ok, socket}
+      end
+    else
+      nil -> {:reply, {:error, %{reason: "invalid_slot"}}, socket}
+      {:error, reason} -> {:reply, {:error, %{reason: to_string(reason)}}, socket}
+    end
+  end
+
+  def handle_in("unequip_item", %{"slot" => slot_str, "x" => x, "y" => y}, socket) do
+    user_id = socket.assigns[:user_id]
+
+    with slot when is_atom(slot) <- safe_slot(slot_str),
+         {:ok, %{item: item, dest_pos: {dx, dy}}} <- Game.unequip_item(user_id, slot, {x, y}) do
+      broadcast(socket, "item_object", item_payload(item, {dx, dy}))
+      push(socket, "equipment", equipment_payload(user_id))
+      {:reply, :ok, socket}
+    else
+      nil -> {:reply, {:error, %{reason: "invalid_slot"}}, socket}
+      {:error, reason} -> {:reply, {:error, %{reason: to_string(reason)}}, socket}
+    end
+  end
+
   # It is also common to receive messages from the client and
   # broadcast to everyone in the current topic (game:lobby).
   def handle_in("move", %{"direction" => direction}, socket) do
@@ -126,6 +171,28 @@ defmodule AbyssWeb.GameChannel do
         push(socket, "blocked", %{x: x, y: y})
         {:noreply, socket}
     end
+  end
+
+  defp safe_slot(slot_str) when is_binary(slot_str) do
+    try do
+      atom = String.to_existing_atom(slot_str)
+      if Abyss.Equipment.valid_slot?(atom), do: atom, else: nil
+    rescue
+      ArgumentError -> nil
+    end
+  end
+
+  defp safe_slot(_), do: nil
+
+  defp equipment_payload(user_id) do
+    equipment = Abyss.UserSession.get_equipment(user_id)
+
+    slots =
+      Map.new(equipment, fn {slot, %Item{id: id, item_id: item_id, count: count}} ->
+        {slot, %{instance_id: id, item_id: item_id, count: count}}
+      end)
+
+    %{slots: slots}
   end
 
   intercept ["user_object"]

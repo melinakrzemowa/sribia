@@ -225,6 +225,10 @@ export default class MainState extends Phaser.State {
       });
     });
 
+    this.channel.on("equipment", (payload) => {
+      if (this.rightPanel) this.rightPanel.setEquipment(payload.slots || {});
+    });
+
     this.channel.join();
 
     // Fill gap between tile area and sidebar
@@ -428,11 +432,25 @@ export default class MainState extends Phaser.State {
 
   // Mouse down — remember the press; defer click-to-move and item-drag
   // decisions until the user either releases (click) or moves the pointer
-  // (drag).
+  // (drag). Presses can land on a tile in the play area or on an equipment
+  // slot in the sidebar; both kinds of press are tracked the same way.
   onWorldDown(pointer) {
     if (!this.player || !this.player.joined) return;
     if (pointer.rightButton && pointer.rightButton.isDown) return;
-    if (pointer.x >= this.camera.width) return;
+
+    // Sidebar press → maybe a slot press if the cursor is over an occupied slot.
+    if (pointer.x >= this.camera.width) {
+      const slot = this.rightPanel && this.rightPanel.slotAt(pointer.x, pointer.y);
+      if (slot && this.rightPanel.equipment[slot]) {
+        this.pendingPress = {
+          screenX: pointer.x,
+          screenY: pointer.y,
+          slot,
+          instance_id: this.rightPanel.equipment[slot].instance_id,
+        };
+      }
+      return;
+    }
     if (pointer.y >= this.camera.height) return;
 
     const tile = this.pointerTile(pointer);
@@ -443,14 +461,25 @@ export default class MainState extends Phaser.State {
     };
   }
 
-  // Pointer move while a press is in progress — promote to an item-drag if
-  // the cursor moves past DRAG_THRESHOLD AND the original tile has items.
+  // Pointer move while a press is in progress — promote to an item-drag once
+  // the cursor crosses DRAG_THRESHOLD. For tile presses we additionally
+  // require the press to have landed on a tile that holds at least one item.
   onWorldMove(pointer) {
     if (!this.pendingPress || this.itemDrag) return;
     if (!pointer.isDown) return;
     const dx = pointer.x - this.pendingPress.screenX;
     const dy = pointer.y - this.pendingPress.screenY;
     if (dx * dx + dy * dy < this.DRAG_THRESHOLD * this.DRAG_THRESHOLD) return;
+
+    if (this.pendingPress.slot) {
+      this.itemDrag = {
+        instance_id: this.pendingPress.instance_id,
+        fromSlot: this.pendingPress.slot,
+      };
+      this.game.canvas.style.cursor = "crosshair";
+      return;
+    }
+
     const { x: tx, y: ty } = this.pendingPress.tile;
     const tile = this.map.getTile(tx, ty);
     if (!tile || !tile.items || tile.items.length === 0) return;
@@ -467,9 +496,33 @@ export default class MainState extends Phaser.State {
       this.itemDrag = null;
       this.pendingPress = null;
       this.game.canvas.style.cursor = "default";
+      if (!this.channel) return;
+      const dropSlot = this.rightPanel && this.rightPanel.slotAt(pointer.x, pointer.y);
+
+      if (drag.fromSlot) {
+        // Slot → slot: only allowed when the destination slot is empty
+        // (the server enforces this too — swaps are rejected).
+        if (dropSlot) {
+          if (dropSlot === drag.fromSlot) return;
+          this.channel.push("equip_item", { instance_id: drag.instance_id, slot: dropSlot });
+          return;
+        }
+        // Slot → world: unequip onto the tile under the cursor.
+        if (pointer.x >= this.camera.width || pointer.y >= this.camera.height) return;
+        const { x: tx, y: ty } = this.pointerTile(pointer);
+        this.channel.push("unequip_item", { slot: drag.fromSlot, x: tx, y: ty });
+        return;
+      }
+
+      // Tile → slot: equip the dragged item.
+      if (dropSlot) {
+        this.requestEquipItem(drag.instance_id, drag.source, dropSlot);
+        return;
+      }
+
+      // Tile → tile move (existing flow).
       const { x: tx, y: ty } = this.pointerTile(pointer);
       if (tx === drag.source.x && ty === drag.source.y) return;
-      if (!this.channel) return;
       this.requestItemMove(drag.instance_id, drag.source, { x: tx, y: ty });
       return;
     }
@@ -477,6 +530,7 @@ export default class MainState extends Phaser.State {
     if (!this.pendingPress) return;
     const press = this.pendingPress;
     this.pendingPress = null;
+    if (!press.tile) return; // press was on a slot; a release without a drag is just a click
     const { x: tx, y: ty } = this.pointerTile(pointer);
     // Treat as a click only if released on the same tile and the player
     // isn't already there.
@@ -522,7 +576,23 @@ export default class MainState extends Phaser.State {
     const path = this.shortestPathToAdjacent(ps, source);
     if (!path) return; // unreachable
     this.clickPath = path;
-    this.pendingMoveItem = { instance_id, source, dest };
+    this.pendingMoveItem = { kind: "move", instance_id, source, dest };
+  }
+
+  // Same auto-walk pattern, but instead of a destination tile the user
+  // dropped the drag on a sidebar slot. We need to be adjacent to the
+  // source tile when the channel push fires; the server then validates the
+  // slot rules.
+  requestEquipItem(instance_id, source, slot) {
+    const ps = this.player.position;
+    if (this.isAdjacentTile(ps, source)) {
+      this.channel.push("equip_item", { instance_id, slot });
+      return;
+    }
+    const path = this.shortestPathToAdjacent(ps, source);
+    if (!path) return;
+    this.clickPath = path;
+    this.pendingMoveItem = { kind: "equip", instance_id, source, slot };
   }
 
   // Called from update() once a queued path finishes — if a pending move
@@ -533,11 +603,15 @@ export default class MainState extends Phaser.State {
     const p = this.pendingMoveItem;
     this.pendingMoveItem = null;
     if (!this.isAdjacentTile(this.player.position, p.source)) return;
-    this.channel.push("move_item", {
-      instance_id: p.instance_id,
-      x: p.dest.x,
-      y: p.dest.y,
-    });
+    if (p.kind === "equip") {
+      this.channel.push("equip_item", { instance_id: p.instance_id, slot: p.slot });
+    } else {
+      this.channel.push("move_item", {
+        instance_id: p.instance_id,
+        x: p.dest.x,
+        y: p.dest.y,
+      });
+    }
   }
 
   // Re-fix the player's sprite Y when an item arrives or leaves their tile,

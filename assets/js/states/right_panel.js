@@ -1,4 +1,5 @@
 import { dpr, canvasWidth, canvasHeight, sidebarWidth, IS_MOBILE } from "../globals";
+import items from "../data/items.json" assert { type: "json" };
 
 // Sidebar layout styled after edubart/otclient game UI.
 // All positions below are in CSS pixels; this.s() scales to physical.
@@ -57,6 +58,15 @@ export default class RightPanelState {
     // Active drag state (null when idle). Lives across redraws so handlers keep
     // running even after the handle sprite is destroyed and recreated.
     this._activeDrag = null;
+
+    // Equipment: slot -> { instance_id, item_id, count }. Server-authoritative;
+    // populated from the channel "equipment" event. Sprites are torn down and
+    // re-rendered on every redraw().
+    this.equipment = {};
+    this.equipmentSprites = [];
+    // Per-slot screen rectangle (physical px) used for hit-testing during a
+    // drag-and-drop. Repopulated each redraw() inside drawEquipment.
+    this.slotRects = {};
   }
 
   s(v) { return Math.round(v * dpr); }
@@ -156,10 +166,13 @@ export default class RightPanelState {
     this.sprites.forEach((s) => s.destroy());       this.sprites = [];
     this.texts.forEach((t) => t.destroy());         this.texts = [];
     this.interactives.forEach((s) => s.destroy()); this.interactives = [];
+    this.equipmentSprites.forEach((s) => s.destroy()); this.equipmentSprites = [];
+    this.slotRects = {};
     if (this.bgGfx) this.bgGfx.destroy();
     if (this.hpGfx) this.hpGfx.destroy();
     if (this.mpGfx) this.mpGfx.destroy();
     this.drawAll();
+    this._renderEquipmentSprites();
     this._lastHealth = -1; this._lastMana = -1;
     this.updateBars();
   }
@@ -419,19 +432,39 @@ export default class RightPanelState {
   // Row 4 col 0/2 carry Soul / Cap counters, col 1 is the feet slot.
   drawEquipment(y, x, w) {
     const slotSize = Math.floor(w / 3);
+    // Equipment slot atom names (matching the backend Abyss.Equipment.slots).
+    // These map cell (col,row) → slot atom + slot icon key.
     const slotByPos = {
-      "0,0": "slot_neck",      "1,0": "slot_head",       "2,0": "slot_back",
-      "0,1": "slot_left_hand", "1,1": "slot_body",       "2,1": "slot_right_hand",
-      "0,2": "slot_finger",    "1,2": "slot_legs",       "2,2": "slot_ammo",
-                               "1,3": "slot_feet",
+      "0,0": { name: "neck",       icon: "slot_neck" },
+      "1,0": { name: "head",       icon: "slot_head" },
+      "2,0": { name: "back",       icon: "slot_back" },
+      "0,1": { name: "left_hand",  icon: "slot_left_hand" },
+      "1,1": { name: "body",       icon: "slot_body" },
+      "2,1": { name: "right_hand", icon: "slot_right_hand" },
+      "0,2": { name: "ring",       icon: "slot_finger" },
+      "1,2": { name: "legs",       icon: "slot_legs" },
+      "2,2": { name: "ammo",       icon: "slot_ammo" },
+      "1,3": { name: "feet",       icon: "slot_feet" },
     };
     for (let row = 0; row < 4; row++) {
       for (let col = 0; col < 3; col++) {
         const sx = x + col * slotSize;
         const sy = y + row * slotSize;
         this.drawSlotBg(sx, sy, slotSize, slotSize);
-        const key = slotByPos[`${col},${row}`];
-        if (key) this.addImage(key, sx, sy, slotSize, slotSize);
+        const def = slotByPos[`${col},${row}`];
+        if (def) {
+          this.addImage(def.icon, sx, sy, slotSize, slotSize);
+          this.slotRects[def.name] = {
+            x: this.panelX + this.s(sx),
+            y: this.s(sy),
+            w: this.s(slotSize),
+            h: this.s(slotSize),
+            // CSS-px versions used by sprite drawing.
+            cssX: sx,
+            cssY: sy,
+            cssSize: slotSize,
+          };
+        }
       }
     }
 
@@ -444,6 +477,59 @@ export default class RightPanelState {
     this.addText(x + slotSize * 2 + slotSize / 2, midY + 1, "1113", 10, COLORS.textLight, [0.5, 0], true);
 
     return y + 4 * slotSize;
+  }
+
+  // Rebuild equipment item sprites on top of the current slot rectangles.
+  // Called from rebuild() after slotRects has been populated by drawEquipment.
+  _renderEquipmentSprites() {
+    Object.entries(this.equipment).forEach(([slot, instance]) => {
+      const rect = this.slotRects[slot];
+      if (!rect || !instance) return;
+      const def = items[String(instance.item_id)];
+      if (!def) return;
+      const itemData = def.groups[0];
+      if (!itemData || !itemData.sprites) return;
+      const spriteId = itemData.sprites[0];
+      if (!spriteId || spriteId <= 0) return;
+      const sheet = Math.ceil(spriteId / 1000);
+      const key = "tibia" + sheet;
+      if (!this.game.cache.checkImageKey(key)) return;
+      const spr = this.game.add.sprite(0, 0, key, spriteId.toString());
+      spr.fixedToCamera = true;
+      // Center the 32×32 native sprite inside the slot rect.
+      const natW = spr.texture.frame.width;
+      const natH = spr.texture.frame.height;
+      const fit = Math.min(rect.w / natW, rect.h / natH);
+      spr.scale.set(fit, fit);
+      spr.anchor.setTo(0.5, 0.5);
+      spr.cameraOffset.setTo(rect.x + rect.w / 2, rect.y + rect.h / 2);
+      spr.smoothed = false;
+      this.equipmentSprites.push(spr);
+    });
+  }
+
+  // External hook: replace the equipment state and re-render.
+  setEquipment(slots) {
+    // Normalize: accept {head: {...}, ...} or null entries that mean "empty".
+    const next = {};
+    Object.entries(slots || {}).forEach(([slot, entry]) => {
+      if (entry) next[slot] = entry;
+    });
+    this.equipment = next;
+    this.equipmentSprites.forEach((s) => s.destroy());
+    this.equipmentSprites = [];
+    this._renderEquipmentSprites();
+  }
+
+  // Hit-test physical pointer coordinates against slot rectangles.
+  // Returns the slot name or null.
+  slotAt(physX, physY) {
+    for (const [name, r] of Object.entries(this.slotRects)) {
+      if (physX >= r.x && physX < r.x + r.w && physY >= r.y && physY < r.y + r.h) {
+        return name;
+      }
+    }
+    return null;
   }
 
   // ── Combat grid (2×3) + stacked action buttons ────────

@@ -96,6 +96,111 @@ defmodule Abyss.Game do
     end
   end
 
+  @doc """
+  Place an item into one of the player's equipment slots. The item can be
+  picked up either from a tile (in which case the player must be adjacent
+  to that tile and the item must be the top of its stack) or from another
+  one of the player's slots.
+
+  Slot ↔ slot moves are only allowed when the destination slot is empty —
+  swaps are not supported. If the source is a tile and the destination slot
+  already holds something, the previously equipped item is dropped on the
+  source tile (i.e. it takes the spot the new item came from).
+  """
+  def equip_item(user_id, instance_id, slot) do
+    with true <- Abyss.Equipment.valid_slot?(slot) || {:error, :invalid_slot},
+         %Abyss.Board.Item{} = item <- Board.get_item(instance_id),
+         true <- Abyss.Equipment.slot_accepts?(slot, item.item_id) || {:error, :wrong_slot},
+         user <- Accounts.get_user!(user_id) do
+      case Board.get_position(:item, instance_id) do
+        nil -> equip_from_slot(user_id, item, slot)
+        source_pos -> equip_from_ground(user_id, user, item, source_pos, slot)
+      end
+    else
+      nil -> {:error, :not_found}
+      {:error, _reason} = err -> err
+      false -> {:error, :invalid}
+    end
+  end
+
+  defp equip_from_ground(user_id, user, item, source_pos, slot) do
+    with true <- adjacent?({user.x, user.y}, source_pos) || {:error, :too_far_from_source},
+         true <- top_of_stack?(item.id, source_pos) || {:error, :not_top_of_stack} do
+      {:ok, ^source_pos} = Board.detach_item(item.id)
+      previous = Abyss.UserSession.set_equipment_slot(user_id, slot, item)
+
+      if previous do
+        # Displaced item lands on the tile the newly equipped one came from
+        # so the visible "swap" reads naturally for the player.
+        :ok = Board.place_item(previous.id, source_pos)
+      end
+
+      {:ok,
+       %{
+         equipped: item,
+         slot: slot,
+         source_pos: source_pos,
+         displaced: previous,
+         from_slot: nil,
+         user_pos: {user.x, user.y}
+       }}
+    end
+  end
+
+  defp equip_from_slot(user_id, item, slot) do
+    equipment = Abyss.UserSession.get_equipment(user_id)
+
+    case Enum.find(equipment, fn {_s, i} -> i.id == item.id end) do
+      nil ->
+        {:error, :not_found}
+
+      {^slot, _} ->
+        # No-op: already in the target slot.
+        {:ok,
+         %{equipped: item, slot: slot, source_pos: nil, displaced: nil,
+           from_slot: slot, user_pos: nil}}
+
+      {from_slot, _} ->
+        if Map.has_key?(equipment, slot) do
+          {:error, :slot_occupied}
+        else
+          Abyss.UserSession.set_equipment_slot(user_id, from_slot, nil)
+          Abyss.UserSession.set_equipment_slot(user_id, slot, item)
+
+          {:ok,
+           %{equipped: item, slot: slot, source_pos: nil, displaced: nil,
+             from_slot: from_slot, user_pos: nil}}
+        end
+    end
+  end
+
+  @doc """
+  Unequip the item in `slot` and place it on `dest_pos`. Same LOS / placement
+  rules as `move_item`.
+  """
+  def unequip_item(user_id, slot, {_x, _y} = dest_pos) do
+    with true <- Abyss.Equipment.valid_slot?(slot) || {:error, :invalid_slot},
+         %Abyss.Board.Item{} = item <- Abyss.UserSession.get_equipment_slot(user_id, slot),
+         user <- Accounts.get_user!(user_id),
+         true <- line_of_sight?({user.x, user.y}, dest_pos) || {:error, :no_los},
+         true <- can_place_on_tile?(dest_pos) || {:error, :tile_blocked} do
+      Abyss.UserSession.set_equipment_slot(user_id, slot, nil)
+      :ok = Board.place_item(item.id, dest_pos)
+      {:ok, %{item: item, slot: slot, dest_pos: dest_pos}}
+    else
+      nil -> {:error, :empty_slot}
+      {:error, _reason} = err -> err
+      false -> {:error, :invalid}
+    end
+  end
+
+  defp top_of_stack?(instance_id, pos) do
+    case Board.get_items(pos) do
+      [%Abyss.Board.Item{id: ^instance_id} | _] -> true
+      _ -> false
+    end
+  end
+
   defp adjacent?({ax, ay}, {bx, by}), do: abs(ax - bx) <= 1 and abs(ay - by) <= 1
 
   @doc """

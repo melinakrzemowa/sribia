@@ -12,16 +12,21 @@ defmodule Abyss.UserSession do
   use GenServer
   require Logger
 
+  alias Abyss.{Accounts, Equipment}
+
   @cleanup_time Application.compile_env(:abyss, :user_session_cleanup_time, 10_000)
+  @persist_delay Application.compile_env(:abyss, :user_session_persist_delay, 5_000)
 
   defstruct [
     :user_id,
     :channel_pid,
-    # Future state fields (not used yet, but ready for migration)
-    :position,
-    :stats,
-    :inventory,
-    :last_db_sync
+    # `equipment` is %{slot_atom => %Abyss.Board.Item{}} — the live runtime
+    # equipment for this user. Items here are also registered in the Board's
+    # items map (via register_item) so they share the global instance-id
+    # space.
+    equipment: %{},
+    # Set to true when there's a pending :persist_equipment timer running.
+    persist_pending: false
   ]
 
   # CLIENT API
@@ -79,6 +84,35 @@ defmodule Abyss.UserSession do
     end
   end
 
+  @doc """
+  Returns the entire equipment map for `user_id`. Starts the session if it
+  isn't running yet.
+  """
+  def get_equipment(user_id) do
+    case get_or_start(user_id) do
+      {:ok, _pid} -> GenServer.call(via_tuple(user_id), :get_equipment)
+      _ -> %{}
+    end
+  end
+
+  def get_equipment_slot(user_id, slot) do
+    case get_or_start(user_id) do
+      {:ok, _pid} -> GenServer.call(via_tuple(user_id), {:get_slot, slot})
+      _ -> nil
+    end
+  end
+
+  @doc """
+  Replace `slot` with `item` (an `%Abyss.Board.Item{}` or `nil` to clear).
+  Returns the previously held item (or `nil`). Schedules a debounced DB write.
+  """
+  def set_equipment_slot(user_id, slot, item) do
+    case get_or_start(user_id) do
+      {:ok, _pid} -> GenServer.call(via_tuple(user_id), {:set_slot, slot, item})
+      err -> err
+    end
+  end
+
   defp get_or_start(user_id) do
     case get_session(user_id) do
       nil ->
@@ -101,10 +135,31 @@ defmodule Abyss.UserSession do
 
     state = %__MODULE__{
       user_id: user_id,
-      channel_pid: nil
+      channel_pid: nil,
+      equipment: %{}
     }
 
-    {:ok, state}
+    {:ok, state, {:continue, :load_equipment}}
+  end
+
+  @impl true
+  def handle_continue(:load_equipment, state) do
+    equipment =
+      try do
+        case Accounts.get_user(state.user_id) do
+          nil -> %{}
+          user -> Equipment.from_persisted(user.equipment || %{})
+        end
+      rescue
+        # In tests UserSessions can be started by processes that don't own the
+        # SQL sandbox; equipment load fails harmlessly with an empty map.
+        DBConnection.OwnershipError -> %{}
+        e ->
+          Logger.warning("UserSession #{state.user_id} could not load equipment: #{inspect(e)}")
+          %{}
+      end
+
+    {:noreply, %{state | equipment: equipment}}
   end
 
   @impl true
@@ -164,6 +219,27 @@ defmodule Abyss.UserSession do
   end
 
   @impl true
+  def handle_call(:get_equipment, _from, state) do
+    {:reply, state.equipment, state}
+  end
+
+  def handle_call({:get_slot, slot}, _from, state) do
+    {:reply, Map.get(state.equipment, slot), state}
+  end
+
+  def handle_call({:set_slot, slot, nil}, _from, state) do
+    {prev, equipment} = Map.pop(state.equipment, slot)
+    state = schedule_persist(%{state | equipment: equipment})
+    {:reply, prev, state}
+  end
+
+  def handle_call({:set_slot, slot, item}, _from, state) do
+    prev = Map.get(state.equipment, slot)
+    state = schedule_persist(%{state | equipment: Map.put(state.equipment, slot, item)})
+    {:reply, prev, state}
+  end
+
+  @impl true
   def handle_info(:session_cleanup, state) do
     if state.channel_pid == nil do
       Logger.info("Cleaning up disconnected UserSession for user #{state.user_id}")
@@ -174,6 +250,20 @@ defmodule Abyss.UserSession do
     end
   end
 
+  def handle_info(:persist_equipment, state) do
+    persist_equipment(state)
+    {:noreply, %{state | persist_pending: false}}
+  end
+
+  @impl true
+  def terminate(_reason, state) do
+    if state.persist_pending do
+      persist_equipment(state)
+    end
+
+    :ok
+  end
+
   # PRIVATE FUNCTIONS
 
   defp via_tuple(user_id) do
@@ -182,5 +272,32 @@ defmodule Abyss.UserSession do
 
   defp schedule_session_cleanup do
     Process.send_after(self(), :session_cleanup, @cleanup_time)
+  end
+
+  # Schedule a persist to disk @persist_delay milliseconds from now. If a
+  # timer is already pending we just leave it — further changes within the
+  # window will all flush together when it fires.
+  defp schedule_persist(%{persist_pending: true} = state), do: state
+
+  defp schedule_persist(state) do
+    Process.send_after(self(), :persist_equipment, @persist_delay)
+    %{state | persist_pending: true}
+  end
+
+  defp persist_equipment(%{user_id: user_id, equipment: equipment}) do
+    case Accounts.get_user(user_id) do
+      nil ->
+        :ok
+
+      user ->
+        case Accounts.update_user(user, %{equipment: Equipment.to_persisted(equipment)}) do
+          {:ok, _} ->
+            :ok
+
+          {:error, changeset} ->
+            Logger.error("Failed to persist equipment for user #{user_id}: #{inspect(changeset)}")
+            :error
+        end
+    end
   end
 end
