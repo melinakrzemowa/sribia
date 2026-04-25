@@ -168,7 +168,33 @@ export default class MapTile {
       instance_id: instance.instance_id,
       item_id: instance.item_id,
     };
+    this._enableItemDrag(sprite, instance);
     return sprite;
+  }
+
+  // Phaser drag — on release, ask the server to move the item to the tile
+  // under the cursor. Snap-back happens automatically because we don't
+  // mutate `this.items` here; the server's broadcast (item_removed +
+  // item_object) drives the actual move.
+  _enableItemDrag(sprite, instance) {
+    sprite.inputEnabled = true;
+    sprite.input.useHandCursor = true;
+    sprite.input.enableDrag(false, false, false, 255);
+    sprite.events.onDragStop.add(() => {
+      const tx = Math.round(sprite.x / field);
+      const ty = Math.round(sprite.y / field);
+      const channel = this.map.state.channel;
+      if (!channel) return;
+      channel.push("move_item", {
+        instance_id: instance.instance_id,
+        x: tx,
+        y: ty,
+      });
+      // Re-render now so the dragged sprite snaps back; if the server
+      // accepts, the broadcasted item_removed + item_object will replace
+      // it at the new tile a moment later.
+      this._renderItems();
+    });
   }
 
   putObject(object) {

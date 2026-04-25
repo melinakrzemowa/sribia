@@ -410,6 +410,10 @@ export default class MainState extends Phaser.State {
     // Skip clicks outside the tile viewport (sidebar, chat).
     if (pointer.x >= this.camera.width) return;
     if (pointer.y >= this.camera.height) return;
+    // If the click landed on an interactive item sprite, treat it as the
+    // start of a drag and don't path-walk to the tile underneath.
+    const target = pointer.targetObject && pointer.targetObject.sprite;
+    if (target && target.gameObject && target.gameObject.type === "item") return;
 
     // The pointer's screen coords are in canvas pixels; add camera scroll to
     // get world pixels. Don't use `input.worldX` because it reads from a
