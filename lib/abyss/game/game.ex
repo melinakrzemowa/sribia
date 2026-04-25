@@ -72,8 +72,8 @@ defmodule Abyss.Game do
     with %Abyss.Board.Item{} = item <- Board.get_item(instance_id),
          old_pos when not is_nil(old_pos) <- Board.get_position(:item, instance_id),
          user <- Accounts.get_user!(user_id),
-         true <- line_of_sight?({user.x, user.y}, old_pos) || {:error, :no_los_to_source},
-         true <- line_of_sight?({user.x, user.y}, new_pos) || {:error, :no_los_to_dest},
+         true <- adjacent?({user.x, user.y}, old_pos) || {:error, :too_far_from_source},
+         true <- line_of_sight?(old_pos, new_pos) || {:error, :no_los},
          true <- movable?(item) || {:error, :unmoveable},
          true <- can_place_on_tile?(new_pos) || {:error, :tile_blocked} do
       Board.move_item(instance_id, new_pos)
@@ -84,33 +84,62 @@ defmodule Abyss.Game do
     end
   end
 
+  defp adjacent?({ax, ay}, {bx, by}), do: abs(ax - bx) <= 1 and abs(ay - by) <= 1
+
   @doc """
-  Returns true if the straight-line path from `from` to `to` (sampled at
-  every integer tile in between) is clear of unpassable env items. Tiles
-  with `hasElevation` (tables) are passable for line-of-sight. Endpoints
-  are not checked.
+  Bresenham line-of-sight from `from` to `to`, treating tiles with an
+  unpassable env item (no `hasElevation`) as opaque. For diagonal steps
+  we apply the Tibia-style rule: the diagonal is blocked only if BOTH
+  orthogonal companion cells are blocked, so a tree on one side still
+  lets you slip past on the other diagonal.
   """
   def line_of_sight?(from, to) do
-    if from == to do
-      true
-    else
-      tiles_between(from, to)
-      |> Enum.all?(fn pos -> not blocks_los?(pos) end)
-    end
+    line_clear?(from, to)
   end
 
-  defp tiles_between({x1, y1}, {x2, y2}) do
-    dx = x2 - x1
-    dy = y2 - y1
-    steps = max(abs(dx), abs(dy))
-    if steps <= 1 do
-      []
-    else
-      Enum.map(1..(steps - 1), fn i ->
-        t = i / steps
-        {round(x1 + t * dx), round(y1 + t * dy)}
-      end)
-      |> Enum.uniq()
+  defp line_clear?({x1, y1}, {x2, y2}) when {x1, y1} == {x2, y2}, do: true
+  defp line_clear?({x1, y1}, {x2, y2}) do
+    dx = abs(x2 - x1)
+    sx = if x1 < x2, do: 1, else: -1
+    dy = -abs(y2 - y1)
+    sy = if y1 < y2, do: 1, else: -1
+    err = dx + dy
+    walk_los(x1, y1, x2, y2, sx, sy, dx, dy, err)
+  end
+
+  defp walk_los(x, y, x, y, _sx, _sy, _dx, _dy, _err), do: true
+  defp walk_los(x0, y0, x1, y1, sx, sy, dx, dy, err) do
+    e2 = 2 * err
+    step_x? = e2 >= dy
+    step_y? = e2 <= dx
+    cond do
+      step_x? and step_y? ->
+        nx = x0 + sx
+        ny = y0 + sy
+        # Diagonal: blocked only if both ortho cells are blocked.
+        if blocks_los?({x0 + sx, y0}) and blocks_los?({x0, y0 + sy}) do
+          false
+        else
+          # The diagonal target itself must be clear (unless it's the endpoint).
+          if {nx, ny} != {x1, y1} and blocks_los?({nx, ny}) do
+            false
+          else
+            walk_los(nx, ny, x1, y1, sx, sy, dx, dy, err + dy + dx)
+          end
+        end
+
+      step_x? ->
+        nx = x0 + sx
+        if {nx, y0} != {x1, y1} and blocks_los?({nx, y0}), do: false,
+          else: walk_los(nx, y0, x1, y1, sx, sy, dx, dy, err + dy)
+
+      step_y? ->
+        ny = y0 + sy
+        if {x0, ny} != {x1, y1} and blocks_los?({x0, ny}), do: false,
+          else: walk_los(x0, ny, x1, y1, sx, sy, dx, dy, err + dx)
+
+      true ->
+        true
     end
   end
 

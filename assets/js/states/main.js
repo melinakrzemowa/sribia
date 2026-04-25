@@ -181,6 +181,10 @@ export default class MainState extends Phaser.State {
     this.pendingPress = null;
     this.itemDrag = null;
     this.DRAG_THRESHOLD = 6;
+    // When user drops far from the source, the player walks toward the
+    // source and the move_item channel push fires on arrival.
+    // { instance_id, source: {x,y}, dest: {x,y} }
+    this.pendingMoveItem = null;
     this.input.onDown.add(this.onWorldDown, this);
     this.input.onUp.add(this.onWorldUp, this);
     this.input.addMoveCallback(this.onWorldMove, this);
@@ -462,11 +466,7 @@ export default class MainState extends Phaser.State {
       const { x: tx, y: ty } = this.pointerTile(pointer);
       if (tx === drag.source.x && ty === drag.source.y) return;
       if (!this.channel) return;
-      this.channel.push("move_item", {
-        instance_id: drag.instance_id,
-        x: tx,
-        y: ty,
-      });
+      this.requestItemMove(drag.instance_id, drag.source, { x: tx, y: ty });
       return;
     }
 
@@ -484,6 +484,56 @@ export default class MainState extends Phaser.State {
       (x, y) => this.map.isBlocked(x, y)
     );
     if (path && path.length > 0) this.clickPath = path;
+  }
+
+  // Adjacent (≤1 in both axes) tile pairs.
+  isAdjacentTile(a, b) {
+    return Math.abs(a.x - b.x) <= 1 && Math.abs(a.y - b.y) <= 1;
+  }
+
+  // Try every tile next to `target` and return the cheapest path from start.
+  shortestPathToAdjacent(start, target) {
+    let best = null;
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        if (dx === 0 && dy === 0) continue;
+        const t = { x: target.x + dx, y: target.y + dy };
+        if (this.map.isBlocked(t.x, t.y)) continue;
+        const path = findPath(start, t, (x, y) => this.map.isBlocked(x, y));
+        if (path && (!best || path.length < best.length)) best = path;
+      }
+    }
+    return best;
+  }
+
+  // Send move_item now if the player is already adjacent to the source;
+  // otherwise queue a walk to the nearest tile next to the source and fire
+  // the channel push on arrival.
+  requestItemMove(instance_id, source, dest) {
+    const ps = this.player.position;
+    if (this.isAdjacentTile(ps, source)) {
+      this.channel.push("move_item", { instance_id, x: dest.x, y: dest.y });
+      return;
+    }
+    const path = this.shortestPathToAdjacent(ps, source);
+    if (!path) return; // unreachable
+    this.clickPath = path;
+    this.pendingMoveItem = { instance_id, source, dest };
+  }
+
+  // Called from update() once a queued path finishes — if a pending move
+  // is set and we're now adjacent to the source, send it.
+  flushPendingMoveItem() {
+    if (!this.pendingMoveItem) return;
+    if (this.clickPath.length > 0 || this.player.moving) return;
+    const p = this.pendingMoveItem;
+    this.pendingMoveItem = null;
+    if (!this.isAdjacentTile(this.player.position, p.source)) return;
+    this.channel.push("move_item", {
+      instance_id: p.instance_id,
+      x: p.dest.x,
+      y: p.dest.y,
+    });
   }
 
   // Re-fix the player's sprite Y when an item arrives or leaves their tile,
@@ -548,6 +598,7 @@ export default class MainState extends Phaser.State {
     }
 
     this.player.update(direction, this.time.fps);
+    this.flushPendingMoveItem();
 
     // Optimize sorting - only sort when needed
     const currentGroupSize = this.group.children.length;
@@ -566,11 +617,13 @@ export default class MainState extends Phaser.State {
         let bPosition = b.gameObject.position;
 
         if (a.gameObject.type == "character") {
-          aPosition = { y: a.y / field, x: a.x / field, isCharacter: true };
+          // Use the character's logical tile, not sprite.y, so elevation
+          // offset doesn't trick the sort into putting them on a "higher" tile.
+          aPosition = { x: aPosition.x, y: aPosition.y, isCharacter: true };
         }
 
         if (b.gameObject.type == "character") {
-          bPosition = { y: b.y / field, x: b.x / field, isCharacter: true };
+          bPosition = { x: bPosition.x, y: bPosition.y, isCharacter: true };
         }
 
         if (aPosition.x > bPosition.x) return 1;

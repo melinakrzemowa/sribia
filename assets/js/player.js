@@ -24,6 +24,12 @@ export default class Player {
     this.health = 100;
     this.maxHealth = 100;
 
+    // Logical sprite position used for all movement logic. The actual
+    // `sprite.y` is rendered as `logicalY - elevationOffset` so visual
+    // elevation never confuses inDestination() etc.
+    this.logicalX = 0;
+    this.logicalY = 0;
+
     this.state.channel.on("joined", (payload) => {
       // reset state on reconnect
       if (this.sprite) this.sprite.destroy();
@@ -37,10 +43,13 @@ export default class Player {
 
       this.movingPosition.x = this.position.x = payload.x;
       this.movingPosition.y = this.position.y = payload.y;
+      this.logicalX = payload.x * field;
+      this.logicalY = payload.y * field;
 
       this.sprite = this.state.users.createUserSprite(payload);
       this.sprite.gameObject = this;
       this.state.camera.follow(this.sprite);
+      this.applyRenderPosition();
 
       this.nameText = new NameText(this.state.add, this);
     });
@@ -54,10 +63,11 @@ export default class Player {
         this.movingPosition.x != payload.x ||
         this.movingPosition.y != payload.y
       ) {
-        this.sprite.x = payload.x * field;
-        this.sprite.y = payload.y * field;
         this.movingPosition = { x: payload.x, y: payload.y };
         this.position = { x: payload.x, y: payload.y };
+        this.logicalX = payload.x * field;
+        this.logicalY = payload.y * field;
+        this.applyRenderPosition();
         this.nameText.update();
       }
     });
@@ -111,8 +121,9 @@ export default class Player {
 
         this.state.channel.push("move", { direction: animation });
       }
-      this.sprite.x += this.movingDistance() * this.direction.x;
-      this.sprite.y += this.movingDistance() * this.direction.y;
+      this.logicalX += this.movingDistance() * this.direction.x;
+      this.logicalY += this.movingDistance() * this.direction.y;
+      this.applyRenderPosition();
       this.nameText.update();
     } else {
       // Finish the movement
@@ -163,17 +174,26 @@ export default class Player {
 
   inDestination() {
     let epsilon = this.movingDistance();
-
     return (
-      Math.abs(this.movingPosition.y * field - this.sprite.y) <= epsilon &&
-      Math.abs(this.movingPosition.x * field - this.sprite.x) <= epsilon
+      Math.abs(this.movingPosition.y * field - this.logicalY) <= epsilon &&
+      Math.abs(this.movingPosition.x * field - this.logicalX) <= epsilon
     );
   }
 
   fixPosition() {
-    this.sprite.x = this.position.x * field;
-    this.sprite.y = this.position.y * field - this.elevationOffset();
-    this.nameText.update();
+    this.logicalX = this.position.x * field;
+    this.logicalY = this.position.y * field;
+    this.applyRenderPosition();
+    if (this.nameText) this.nameText.update();
+  }
+
+  // Push logical → rendered: the sprite sits `elevationOffset` higher than
+  // its logical Y. Called after every position change so render and logic
+  // stay in sync without sprite.y carrying the elevation.
+  applyRenderPosition() {
+    if (!this.sprite) return;
+    this.sprite.x = this.logicalX;
+    this.sprite.y = this.logicalY - this.elevationOffset();
   }
 
   // Visual lift when standing on stacked hasElevation items (cap 3).
