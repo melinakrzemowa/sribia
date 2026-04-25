@@ -18,6 +18,8 @@ export default class Player {
     this.nameText = null;
     this.moving = false;
     this.fps = 60;
+    this.health = 100;
+    this.maxHealth = 100;
 
     this.state.channel.on("joined", (payload) => {
       // reset state on reconnect
@@ -27,6 +29,8 @@ export default class Player {
       this.joined = true;
       this.speed = payload.speed;
       this.name = payload.name;
+      if (typeof payload.max_health === "number") this.maxHealth = payload.max_health;
+      if (typeof payload.health === "number") this.health = payload.health;
 
       this.movingPosition.x = this.position.x = payload.x;
       this.movingPosition.y = this.position.y = payload.y;

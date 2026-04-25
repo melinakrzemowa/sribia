@@ -76,6 +76,8 @@ export default class UsersContainer {
         sprite: this.createUserSprite(user),
         position: { x: user.x, y: user.y },
         name: user.name,
+        health: typeof user.health === "number" ? user.health : 100,
+        maxHealth: typeof user.max_health === "number" ? user.max_health : 100,
       };
 
       userObj.nameText = new NameText(this.state.add, userObj);

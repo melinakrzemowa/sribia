@@ -35,8 +35,7 @@ export default class RightPanelState {
     this.width = sidebarWidth;
     this.panelH = canvasHeight;
 
-    // Player stats
-    this.maxHealth = 100; this.currentHealth = 70;
+    // Mana is still local placeholder; HP comes from mainState.player on update.
     this.maxMana = 50;    this.currentMana = 30;
     this._lastHealth = -1; this._lastMana = -1;
 
@@ -693,8 +692,11 @@ export default class RightPanelState {
 
   // ── HP/MP dynamic fill ─────────────────────────────────
   updateBars() {
-    if (this.currentHealth === this._lastHealth && this.currentMana === this._lastMana) return;
-    this._lastHealth = this.currentHealth;
+    const player = this.mainState && this.mainState.player;
+    const currentHealth = player && typeof player.health === "number" ? player.health : 100;
+    const maxHealth = player && typeof player.maxHealth === "number" ? player.maxHealth : 100;
+    if (currentHealth === this._lastHealth && this.currentMana === this._lastMana) return;
+    this._lastHealth = currentHealth;
     this._lastMana = this.currentMana;
 
     if (this.hpBarGeom) {
@@ -703,13 +705,13 @@ export default class RightPanelState {
       this.hpGfx.beginFill(COLORS.hpEmpty);
       this.hpGfx.drawRect(x, y, w, h);
       this.hpGfx.endFill();
-      const fw = Math.round((w * this.currentHealth) / this.maxHealth);
+      const fw = Math.round((w * currentHealth) / Math.max(1, maxHealth));
       if (fw > 0) {
         this.hpGfx.beginFill(COLORS.hpFill);
         this.hpGfx.drawRect(x, y, fw, h);
         this.hpGfx.endFill();
       }
-      if (this.hpNumText) this.hpNumText.text = `${this.currentHealth} / ${this.maxHealth}`;
+      if (this.hpNumText) this.hpNumText.text = `${currentHealth} / ${maxHealth}`;
     }
 
     if (this.mpBarGeom) {

@@ -27,8 +27,8 @@ defmodule AbyssWeb.GameChannel do
   end
 
   def handle_info({:joined, user}, socket) do
-    push(socket, "joined", %{user_id: user.id, name: user.name, speed: user.speed, x: user.x, y: user.y})
-    broadcast(socket, "user_object", %{user_id: user.id, name: user.name, speed: user.speed, x: user.x, y: user.y})
+    push(socket, "joined", user_payload(user))
+    broadcast(socket, "user_object", user_payload(user))
 
     map_data = Game.get_map_data(user.x, user.y, 7)
     push(socket, "map_data", %{map: map_data})
@@ -56,11 +56,23 @@ defmodule AbyssWeb.GameChannel do
 
   defp push_object(socket, _position, %User{} = user) do
     if socket.assigns[:user_id] != user.id do
-      push(socket, "user_object", %{user_id: user.id, name: user.name, speed: user.speed, x: user.x, y: user.y})
+      push(socket, "user_object", user_payload(user))
     end
   end
 
   defp push_object(_socket, _pos, _object), do: :ok
+
+  defp user_payload(%User{} = user) do
+    %{
+      user_id: user.id,
+      name: user.name,
+      speed: user.speed,
+      x: user.x,
+      y: user.y,
+      health: user.health,
+      max_health: user.max_health
+    }
+  end
 
   # It is also common to receive messages from the client and
   # broadcast to everyone in the current topic (game:lobby).
