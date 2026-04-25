@@ -85,4 +85,6 @@ jobs:
             sudo sed -i 's/^VERSION=.*/VERSION=${VERSION}/' .env
             docker pull ghcr.io/melinakrzemowa/sribia:${VERSION}
             docker compose up -d
+            # Apply pending Ecto migrations against the running release.
+            docker compose exec -T web bin/abyss eval "Abyss.Release.migrate()"
           DEPLOY
