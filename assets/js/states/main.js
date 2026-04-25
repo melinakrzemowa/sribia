@@ -203,11 +203,15 @@ export default class MainState extends Phaser.State {
     this.channel.on("item_object", (item) => {
       this.map.addItem(item.x, item.y, item);
       this.refreshPlayerElevationIfOn(item.x, item.y);
+      this.users.refreshElevationAt(item.x, item.y);
+      this.needsSort = true;
     });
 
     this.channel.on("item_removed", (item) => {
       this.map.removeItem(item.x, item.y, item.instance_id);
       this.refreshPlayerElevationIfOn(item.x, item.y);
+      this.users.refreshElevationAt(item.x, item.y);
+      this.needsSort = true;
     });
 
     this.channel.on("user_left", (data) => {
@@ -608,8 +612,11 @@ export default class MainState extends Phaser.State {
     // Only sort if:
     // 1. Group size changed (sprite added/removed)
     // 2. Player is moving (sprites changing positions)
+    // 3. Items changed on a tile (z-order needs to refresh — e.g. a box
+    //    dropped under a standing character must render below them)
     const shouldSort =
-      groupSizeChanged || direction.x !== 0 || direction.y !== 0;
+      groupSizeChanged || direction.x !== 0 || direction.y !== 0 || this.needsSort;
+    if (this.needsSort) this.needsSort = false;
 
     if (shouldSort && currentGroupSize > 0) {
       this.group.customSort((a, b) => {
@@ -617,13 +624,16 @@ export default class MainState extends Phaser.State {
         let bPosition = b.gameObject.position;
 
         if (a.gameObject.type == "character") {
-          // Use the character's logical tile, not sprite.y, so elevation
-          // offset doesn't trick the sort into putting them on a "higher" tile.
-          aPosition = { x: aPosition.x, y: aPosition.y, isCharacter: true };
+          // While walking, use the destination tile so the character draws
+          // above items at the tile they're entering (otherwise the box
+          // they're stepping onto from the west would clip their legs).
+          const ap = a.gameObject.movingPosition || aPosition;
+          aPosition = { x: ap.x, y: ap.y, isCharacter: true };
         }
 
         if (b.gameObject.type == "character") {
-          bPosition = { x: bPosition.x, y: bPosition.y, isCharacter: true };
+          const bp = b.gameObject.movingPosition || bPosition;
+          bPosition = { x: bp.x, y: bp.y, isCharacter: true };
         }
 
         if (aPosition.x > bPosition.x) return 1;

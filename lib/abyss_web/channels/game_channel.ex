@@ -34,8 +34,13 @@ defmodule AbyssWeb.GameChannel do
     map_data = Game.get_map_data(user.x, user.y, 7)
     push(socket, "map_data", %{map: map_data})
 
+    # Server stores items with the newest at the HEAD of each field list
+    # (Container.put prepends). Reverse so the client receives oldest first
+    # and ends up with the newest as the LAST element of `tile.items`,
+    # matching the frontend convention that `items[length-1]` is the top
+    # of the stack.
     Enum.each(Game.get_fields({user.x, user.y}), fn {position, list} ->
-      Enum.each(list, fn object ->
+      Enum.each(Enum.reverse(list), fn object ->
         push_object(socket, position, object)
       end)
     end)

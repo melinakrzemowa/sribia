@@ -2,10 +2,38 @@ import { field, scale, size } from "./globals";
 import NameText from "./names";
 import outfits from "./data/outfits.json" assert { type: "json" };
 
+const MAX_ELEVATIONS_ON_HEAD = 3;
+const ELEVATION_PIXELS = 8;
+
 export default class UsersContainer {
   constructor(state) {
     this.state = state;
     this.container = {}; // users contained by user_id
+  }
+
+  // Returns the px offset to apply on both axes when a user stands on
+  // stacked hasElevation items.
+  elevationOffset(x, y) {
+    const tile = this.state.map && this.state.map.getTile(x, y);
+    if (!tile || typeof tile.elevationCount !== "function") return 0;
+    return Math.min(MAX_ELEVATIONS_ON_HEAD, tile.elevationCount()) * ELEVATION_PIXELS * scale;
+  }
+
+  applyElevation(user) {
+    if (!user || !user.sprite || user.moving) return;
+    const off = this.elevationOffset(user.position.x, user.position.y);
+    user.sprite.x = user.position.x * field - off;
+    user.sprite.y = user.position.y * field - off;
+    if (user.nameText) user.nameText.update();
+  }
+
+  // Called when an item appears/disappears on a tile — refresh any user
+  // currently standing there so they snap up/down by an elevation step.
+  refreshElevationAt(x, y) {
+    for (const id in this.container) {
+      const u = this.container[id];
+      if (!u.moving && u.position.x === x && u.position.y === y) this.applyElevation(u);
+    }
   }
 
   getSpriteIndex(group, w, h, l, x, y, z, f) {
@@ -75,6 +103,9 @@ export default class UsersContainer {
       let userObj = {
         sprite: this.createUserSprite(user),
         position: { x: user.x, y: user.y },
+        movingPosition: { x: user.x, y: user.y },
+        moving: false,
+        type: "character",
         name: user.name,
         health: typeof user.health === "number" ? user.health : 100,
         maxHealth: typeof user.max_health === "number" ? user.max_health : 100,
@@ -85,6 +116,7 @@ export default class UsersContainer {
       userObj.sprite.gameObject = userObj;
       this.container[user.user_id] = userObj;
       this.state.map.putObject(user.x, user.y, userObj);
+      this.applyElevation(userObj);
     }
   }
 
@@ -131,19 +163,26 @@ export default class UsersContainer {
 
       // Save last move time
       user.moved = Date.now();
+      user.moving = true;
+      user.movingPosition = { x, y };
 
       // Move sprite with tween and play animation
       user.sprite.animations.play(animation + "_move", 8, true);
       var tween = this.state.add
         .tween(user.sprite)
         .to({ x: x * field, y: y * field }, payload.move_time, null, true);
+      const usersContainer = this;
       tween.onComplete.add(function () {
         // Stop animation if user stopped moving
-        if (Date.now() - self.container[payload.user_id].moved > 200) {
-          user.sprite.animations.stop();
-          user.sprite.animations.play(animation + "_stand", 0, true);
-          user.nameText.update();
+        const u = self.container[payload.user_id];
+        if (!u) return;
+        if (Date.now() - u.moved > 200) {
+          u.sprite.animations.stop();
+          u.sprite.animations.play(animation + "_stand", 0, true);
+          u.nameText.update();
         }
+        u.moving = false;
+        usersContainer.applyElevation(u);
       });
       tween.onUpdateCallback(() => {
         user.nameText.update();
@@ -152,6 +191,8 @@ export default class UsersContainer {
       // If sprite shouldn't be moved then set its position to correct one
       user.sprite.x = payload.x * field;
       user.sprite.y = payload.y * field;
+      user.moving = false;
+      this.applyElevation(user);
     }
 
     // Save user position
