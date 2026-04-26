@@ -109,10 +109,8 @@ defmodule Abyss.Game do
     if opts[:except_user] == id, do: nil, else: Accounts.get_user!(id)
   end
 
-  defp load_object({{:item, id}, _blocks}, _opts) do
-    Board.get_item(id)
-  end
-
+  # Item entries from Board.get_fields are already %Abyss.Board.Item{} —
+  # the Board resolves them inline now to avoid an N+1 round-trip.
   defp load_object(object, _opts), do: object
 
   def spawn_item({x, y} = position, item_id, count \\ 1) do

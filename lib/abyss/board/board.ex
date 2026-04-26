@@ -144,7 +144,11 @@ defmodule Abyss.Board do
     fields =
       Enum.reduce(-range_x..range_x, %{}, fn i, a ->
         Enum.reduce(-range_y..range_y, a, fn j, acc ->
-          field = Container.get_field(container, {x + i, y + j})
+          field =
+            container
+            |> Container.get_field({x + i, y + j})
+            |> resolve_items(container)
+
           Map.put(acc, {x + i, y + j}, field)
         end)
       end)
@@ -291,4 +295,21 @@ defmodule Abyss.Board do
   end
 
   defp seed_tile(container, _pos, _value), do: container
+
+  # Replace `{{:item, id}, _blocks}` entries in a field list with the live
+  # `%Item{}` so the caller doesn't have to follow up with N additional
+  # `Board.get_item/1` GenServer calls (one per item in the field). The
+  # container is local state here so the lookup is just a Map fetch.
+  defp resolve_items(field, container) do
+    Enum.flat_map(field, fn
+      {{:item, id}, _blocks} ->
+        case Container.get_item(container, id) do
+          nil -> []
+          item -> [item]
+        end
+
+      other ->
+        [other]
+    end)
+  end
 end
