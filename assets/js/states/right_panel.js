@@ -508,6 +508,12 @@ export default class RightPanelState {
       spr.anchor.setTo(0.5, 0.5);
       spr.cameraOffset.setTo(rect.x + rect.w / 2, rect.y + rect.h / 2);
       spr.smoothed = false;
+      // Equipment sprites must live inside uiGroup so the per-frame
+      // bringToTop keeps them above world content; otherwise the panel
+      // background (which IS in uiGroup) paints over them.
+      if (this.mainState && this.mainState.uiGroup) {
+        this.mainState.uiGroup.add(spr);
+      }
       this.equipmentSprites.push(spr);
     });
   }
