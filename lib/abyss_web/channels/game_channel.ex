@@ -154,14 +154,11 @@ defmodule AbyssWeb.GameChannel do
 
     case Game.move(socket.assigns[:user_id], direction) do
       {:ok, {x, y}, move_time} ->
-        map_data = Game.get_map_data(x, y, 7)
-        push(socket, "map_data", %{map: map_data})
-
-        Enum.each(Game.get_fields({x, y}), fn {position, list} ->
-          Enum.each(list, fn object ->
-            push_object(socket, position, object)
-          end)
-        end)
+        # Only ship the leading-edge tiles that just entered view, instead
+        # of re-pushing the full 17×17 visible window every step.
+        {dx, dy} = Abyss.Board.Directions.calc(direction)
+        positions = Game.newly_visible_tiles({x - dx, y - dy}, {x, y})
+        push_visible_diff(socket, positions, {x, y})
 
         broadcast(socket, "move", %{x: x, y: y, user_id: socket.assigns[:user_id], move_time: move_time})
         {:noreply, socket}
@@ -171,6 +168,23 @@ defmodule AbyssWeb.GameChannel do
         push(socket, "blocked", %{x: x, y: y})
         {:noreply, socket}
     end
+  end
+
+  defp push_visible_diff(_socket, [], _around), do: :ok
+
+  defp push_visible_diff(socket, positions, around) do
+    map_data = Game.get_map_data_for(positions, 7)
+    if map_data != [], do: push(socket, "map_data", %{map: map_data})
+
+    Enum.each(Game.get_fields_for(positions, around), fn {position, list} ->
+      # Same convention as the initial join: server stores newest at the
+      # head of the field list (Container.put prepends), but the client
+      # treats `items[length-1]` as the top of the stack — reverse so the
+      # last push lands as the topmost item.
+      Enum.each(Enum.reverse(list), fn object ->
+        push_object(socket, position, object)
+      end)
+    end)
   end
 
   defp safe_slot(slot_str) when is_binary(slot_str) do

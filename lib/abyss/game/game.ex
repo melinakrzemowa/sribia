@@ -24,6 +24,75 @@ defmodule Abyss.Game do
     |> Enum.map(fn {position, field} -> {position, load_field(field)} end)
   end
 
+  @doc """
+  Returns a list of tile coordinates that just entered the player's
+  visible window when they stepped from `old_pos` to `new_pos`.
+
+  - Cardinal step: a single column (or row) of `2*range + 1` tiles.
+  - Diagonal step: that column PLUS a row, with the overlap dropped.
+  - No motion: empty list.
+  """
+  def newly_visible_tiles({old_x, old_y}, {new_x, new_y}) do
+    leading_col =
+      case new_x - old_x do
+        1 -> [new_x + @map_range_x]
+        -1 -> [new_x - @map_range_x]
+        _ -> []
+      end
+
+    leading_row =
+      case new_y - old_y do
+        1 -> [new_y + @map_range_y]
+        -1 -> [new_y - @map_range_y]
+        _ -> []
+      end
+
+    col_tiles =
+      for x <- leading_col,
+          y <- (new_y - @map_range_y)..(new_y + @map_range_y),
+          do: {x, y}
+
+    row_tiles =
+      for y <- leading_row,
+          x <- (new_x - @map_range_x)..(new_x + @map_range_x),
+          x not in leading_col,
+          do: {x, y}
+
+    col_tiles ++ row_tiles
+  end
+
+  @doc """
+  Same shape as `get_map_data/3` but only for the listed `positions`.
+  Tiles missing from Cachex are skipped entirely (the client doesn't need
+  empty placeholder rows when nothing was loaded).
+  """
+  def get_map_data_for(positions, z) do
+    positions
+    |> Enum.map(fn {x, y} ->
+      case Cachex.get(:map, {x, y, z}) do
+        {:ok, data} when is_map(data) ->
+          data |> strip_loose_items() |> Map.merge(%{x: x, y: y, z: z})
+
+        _ ->
+          nil
+      end
+    end)
+    |> Enum.reject(&is_nil/1)
+  end
+
+  @doc """
+  Loaded fields (`{position, [object]}`) for an explicit list of positions.
+  Centred on `around` so the underlying `Board.get_fields/2` is a single
+  GenServer call that covers the full 17×17 visible window — we just keep
+  the subset the channel actually wants to ship.
+  """
+  def get_fields_for(positions, around) do
+    fields = Board.get_fields(around, {@map_range_x, @map_range_y})
+
+    positions
+    |> Enum.map(fn pos -> {pos, load_field(Map.get(fields, pos, []))} end)
+  end
+
   defp load_field(field) do
     field |> Enum.map(&load_object/1)
   end
