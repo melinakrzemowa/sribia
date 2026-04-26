@@ -39,7 +39,10 @@ defmodule AbyssWeb.GameChannel do
     # and ends up with the newest as the LAST element of `tile.items`,
     # matching the frontend convention that `items[length-1]` is the top
     # of the stack.
-    Enum.each(Game.get_fields({user.x, user.y}), fn {position, list} ->
+    # except_user skips loading self via Accounts.get_user! — we already
+    # have the user struct here, and self is delivered separately via the
+    # "joined" push above.
+    Enum.each(Game.get_fields({user.x, user.y}, except_user: user.id), fn {position, list} ->
       Enum.each(Enum.reverse(list), fn object ->
         push_object(socket, position, object)
       end)
@@ -176,7 +179,13 @@ defmodule AbyssWeb.GameChannel do
     map_data = Game.get_map_data_for(positions, 7)
     if map_data != [], do: push(socket, "map_data", %{map: map_data})
 
-    Enum.each(Game.get_fields_for(positions, around), fn {position, list} ->
+    # except_user is defensive — the leading-edge tiles never include the
+    # player's own tile (player stays at viewport centre), so this is a
+    # no-op today, but it keeps the rule consistent if the diff geometry
+    # ever changes.
+    user_id = socket.assigns[:user_id]
+
+    Enum.each(Game.get_fields_for(positions, around, except_user: user_id), fn {position, list} ->
       # Same convention as the initial join: server stores newest at the
       # head of the field list (Container.put prepends), but the client
       # treats `items[length-1]` as the top of the stack — reverse so the

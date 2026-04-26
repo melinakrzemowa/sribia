@@ -22,9 +22,9 @@ defmodule Abyss.Game do
     Board.delete(:user, user_id)
   end
 
-  def get_fields({x, y}) do
+  def get_fields({x, y}, opts \\ []) do
     Board.get_fields({x, y}, {@map_range_x, @map_range_y})
-    |> Enum.map(fn {position, field} -> {position, load_field(field)} end)
+    |> Enum.map(fn {position, field} -> {position, load_field(field, opts)} end)
   end
 
   @doc """
@@ -89,26 +89,31 @@ defmodule Abyss.Game do
   GenServer call that covers the full 17×17 visible window — we just keep
   the subset the channel actually wants to ship.
   """
-  def get_fields_for(positions, around) do
+  def get_fields_for(positions, around, opts \\ []) do
     fields = Board.get_fields(around, {@map_range_x, @map_range_y})
 
     positions
-    |> Enum.map(fn pos -> {pos, load_field(Map.get(fields, pos, []))} end)
+    |> Enum.map(fn pos -> {pos, load_field(Map.get(fields, pos, []), opts)} end)
   end
 
-  defp load_field(field) do
-    field |> Enum.map(&load_object/1)
+  # `:except_user` skips loading a specific user from the field. Used by the
+  # join handler so we don't burn an extra `Accounts.get_user!` for the player
+  # who's already loaded into the channel's socket.assigns.
+  defp load_field(field, opts) do
+    field
+    |> Enum.map(&load_object(&1, opts))
+    |> Enum.reject(&is_nil/1)
   end
 
-  defp load_object({{:user, id}, _blocks}) do
-    Accounts.get_user!(id)
+  defp load_object({{:user, id}, _blocks}, opts) do
+    if opts[:except_user] == id, do: nil, else: Accounts.get_user!(id)
   end
 
-  defp load_object({{:item, id}, _blocks}) do
+  defp load_object({{:item, id}, _blocks}, _opts) do
     Board.get_item(id)
   end
 
-  defp load_object(object), do: object
+  defp load_object(object, _opts), do: object
 
   def spawn_item({x, y} = position, item_id, count \\ 1) do
     if can_place_on_tile?(position) do
