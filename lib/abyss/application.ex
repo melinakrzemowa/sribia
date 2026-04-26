@@ -21,8 +21,10 @@ defmodule Abyss.Application do
     opts = [strategy: :one_for_one, name: Abyss.Supervisor]
     supervisor = Supervisor.start_link(children, opts)
 
+    # MapLoader runs asynchronously and triggers Board.reseed_from_cache()
+    # itself once Cachex is fully populated, so loose items get spawned on
+    # the Board after the map JSON has finished loading.
     Abyss.Game.MapLoader.load_cache()
-    Abyss.Board.reseed_from_cache()
 
     supervisor
   end

@@ -33,7 +33,12 @@ defmodule Abyss.Game.MapLoader do
 
         Logger.info("[MapLoader] Finished loading Map")
 
-        # TODO: put items on Board
+        # Cachex is now fully populated — kick the Board so it spawns every
+        # loose item embedded in the map as a real Board instance. Doing it
+        # here (instead of from Application.start) avoids the race where the
+        # async load_cache hasn't filled Cachex yet by the time the boot
+        # script tries to seed.
+        Abyss.Board.reseed_from_cache()
       end)
     end
   else
