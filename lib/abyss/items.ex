@@ -42,6 +42,7 @@ defmodule Abyss.Items do
   hasElevation (boxes, barrels, dropped chests) or isUnpassable (single-tile
   statues, plant pots that can be pushed but not stuffed in a backpack).
   """
+  def loose?(nil), do: false
   def loose?(%{"id" => id}), do: loose?(id)
 
   def loose?(id) when is_integer(id) or is_binary(id) do
@@ -50,6 +51,8 @@ defmodule Abyss.Items do
       props -> loose_props?(props)
     end
   end
+
+  def loose?(_), do: false
 
   def loose_props?(props) when is_map(props) do
     cond do
@@ -69,6 +72,7 @@ defmodule Abyss.Items do
   occupies. Items with `hasElevation` (boxes, tables) don't block — you can
   walk across them.
   """
+  def blocks?(nil), do: false
   def blocks?(%{"id" => id}), do: blocks?(id)
 
   def blocks?(id) when is_integer(id) or is_binary(id) do
@@ -77,6 +81,8 @@ defmodule Abyss.Items do
       props -> blocks_props?(props)
     end
   end
+
+  def blocks?(_), do: false
 
   def blocks_props?(props) when is_map(props) do
     props["isUnpassable"] == true and props["hasElevation"] != true
@@ -91,6 +97,7 @@ defmodule Abyss.Items do
     end
   end
 
+  defp allows_placement?(nil), do: true
   defp allows_placement?(%{"id" => id}), do: allows_placement?(id)
   defp allows_placement?(id) when is_integer(id) or is_binary(id) do
     case get(id) do
@@ -101,6 +108,8 @@ defmodule Abyss.Items do
              props["hasElevation"] != true)
     end
   end
+
+  defp allows_placement?(_), do: true
 
   @doc """
   Whether the static map at `pos` (z = 7) blocks movement / line of sight.
