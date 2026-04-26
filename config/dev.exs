@@ -50,9 +50,19 @@ config :logger, :console, format: "$time [$level] $message\n"
 config :phoenix, :stacktrace_depth, 20
 
 # Configure your database
+#
+# `socket_options: [keepalive: true]` tells the kernel to send TCP keepalive
+# probes on otherwise-idle Postgres connections. After a macOS sleep / wake or
+# any network interruption the kernel can then detect dead sockets via the
+# probes (rather than waiting for the next query to time out at the
+# application layer), and DBConnection reconnects more eagerly. The exact
+# probe cadence is the OS default — fine-grained tuning (TCP_KEEPIDLE etc.)
+# would need raw setsockopt entries that differ per platform.
 config :abyss, Abyss.Repo,
   username: "postgres",
   password: "postgres",
   database: "abyss_dev",
   hostname: "localhost",
-  pool_size: 10
+  pool_size: 10,
+  socket_options: [keepalive: true],
+  connect_timeout: 15_000
