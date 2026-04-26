@@ -121,22 +121,31 @@ defmodule Abyss.Board do
   end
 
   def handle_call({:move, type, object, direction}, _from, %Container{} = container) do
-    position = Container.get_position(container, type, object)
-    new_position = Moves.add(position, Directions.calc(direction))
+    case Container.get_position(container, type, object) do
+      nil ->
+        # Object isn't tracked here. Probably the Board crashed and the
+        # caller didn't re-register before issuing a move. Bail out instead
+        # of crashing the GenServer (which would wipe everyone else's
+        # state too).
+        {:reply, {:error, :not_on_board}, container}
 
-    cond do
-      # Static map blockers (water, trees, walls baked into the tileset)
-      # — Container only knows live placements, so without this the server
-      # silently accepts walks onto water.
-      Abyss.Items.env_blocks_movement?(new_position) ->
-        {:reply, {:error, position}, container}
+      position ->
+        new_position = Moves.add(position, Directions.calc(direction))
 
-      Container.blocks?(container, new_position) ->
-        {:reply, {:error, position}, container}
+        cond do
+          # Static map blockers (water, trees, walls baked into the tileset)
+          # — Container only knows live placements, so without this the server
+          # silently accepts walks onto water.
+          Abyss.Items.env_blocks_movement?(new_position) ->
+            {:reply, {:error, position}, container}
 
-      true ->
-        container = Container.move(container, new_position, type, object)
-        {:reply, {:ok, new_position}, container}
+          Container.blocks?(container, new_position) ->
+            {:reply, {:error, position}, container}
+
+          true ->
+            container = Container.move(container, new_position, type, object)
+            {:reply, {:ok, new_position}, container}
+        end
     end
   end
 

@@ -404,6 +404,24 @@ defmodule Abyss.Game do
           update_user_position(user, position)
           {:ok, position, move_time}
 
+        {:error, :not_on_board} ->
+          # Board lost track of this user (it crashed mid-game and the
+          # supervisor restarted with empty state). Re-add the user at
+          # their persisted DB position and try the move once more.
+          {:ok, _pos} = Board.add_user({user.x, user.y}, user_id)
+
+          case Board.move(:user, user_id, direction) do
+            {:ok, position} ->
+              update_user_position(user, position)
+              {:ok, position, move_time}
+
+            {:error, position} when is_tuple(position) ->
+              {:error, position}
+
+            {:error, _} ->
+              {:error, {user.x, user.y}}
+          end
+
         {:error, position} ->
           {:error, position}
       end

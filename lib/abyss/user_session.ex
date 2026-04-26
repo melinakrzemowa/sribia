@@ -262,22 +262,24 @@ defmodule Abyss.UserSession do
 
   # Board GenServer died. The supervisor will restart it, but every %Item{}
   # in our equipment map now references an id that's gone with the old
-  # container. Defer a resync so the new Board has time to come up before
-  # we try to re-register.
+  # container, AND this user is no longer registered on the new Board.
+  # Defer a resync so the new Board has time to come up before we try to
+  # re-add the user / re-register the items.
   def handle_info({:DOWN, _ref, :process, _pid, _reason}, state) do
-    Process.send_after(self(), :resync_equipment_with_board, 100)
+    Process.send_after(self(), :resync_with_board, 100)
     {:noreply, state}
   end
 
-  def handle_info(:resync_equipment_with_board, state) do
+  def handle_info(:resync_with_board, state) do
     case Process.whereis(Abyss.Board) do
       nil ->
         # Board not back yet — try again shortly.
-        Process.send_after(self(), :resync_equipment_with_board, 100)
+        Process.send_after(self(), :resync_with_board, 100)
         {:noreply, state}
 
       _pid ->
         monitor_board()
+        re_add_user_to_board(state.user_id)
 
         # Re-register only items the new Board doesn't recognise. An item
         # whose id is still valid is either:
@@ -328,6 +330,27 @@ defmodule Abyss.UserSession do
     case Process.whereis(Abyss.Board) do
       nil -> :ok
       pid -> Process.monitor(pid)
+    end
+  end
+
+  # Best-effort re-add this user to a freshly-restarted Board so the next
+  # move call doesn't have to wait for Game.move's auto-recovery path.
+  # Container.put inside Board.add_user is idempotent (it deletes any prior
+  # registration before inserting), so this is safe to call even when the
+  # user is already on the board.
+  defp re_add_user_to_board(user_id) do
+    try do
+      case Accounts.get_user(user_id) do
+        %{x: x, y: y} when not is_nil(x) and not is_nil(y) ->
+          Abyss.Board.add_user({x, y}, user_id)
+
+        _ ->
+          :ok
+      end
+    rescue
+      _ -> :ok
+    catch
+      :exit, _ -> :ok
     end
   end
 
