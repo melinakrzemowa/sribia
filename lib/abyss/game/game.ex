@@ -210,11 +210,15 @@ defmodule Abyss.Game do
       {:ok, ^source_pos} = Board.detach_item(item.id)
       previous = Abyss.UserSession.set_equipment_slot(user_id, slot, item)
 
-      if previous do
-        # Displaced item lands on the tile the newly equipped one came from
-        # so the visible "swap" reads naturally for the player.
-        :ok = Board.place_item(previous.id, source_pos)
-      end
+      previous =
+        if previous do
+          # Displaced item lands on the tile the newly equipped one came from
+          # so the visible "swap" reads naturally for the player. Re-register
+          # if the Board lost the displaced item's id (post-crash).
+          fresh = ensure_board_item(previous)
+          :ok = Board.place_item(fresh.id, source_pos)
+          fresh
+        end
 
       {:ok,
        %{
@@ -266,6 +270,7 @@ defmodule Abyss.Game do
          true <- line_of_sight?({user.x, user.y}, dest_pos) || {:error, :no_los},
          true <- can_place_on_tile?(dest_pos) || {:error, :tile_blocked} do
       Abyss.UserSession.set_equipment_slot(user_id, slot, nil)
+      item = ensure_board_item(item)
       :ok = Board.place_item(item.id, dest_pos)
       {:ok, %{item: item, slot: slot, dest_pos: dest_pos}}
     else
@@ -279,6 +284,23 @@ defmodule Abyss.Game do
     case Board.get_items(pos) do
       [%Abyss.Board.Item{id: ^instance_id} | _] -> true
       _ -> false
+    end
+  end
+
+  # Equipment items live in `UserSession`; the Board's items map is kept
+  # in-process only and is wiped on Board crash. After such a crash the
+  # session's %Item{} structs reference ids the Board no longer knows about,
+  # so calls like `Board.place_item/2` would fail with `:not_found` and the
+  # caller's strict pattern match would raise — losing the player's item.
+  #
+  # Re-register fresh whenever the Board doesn't recognise the id. Returns
+  # the (possibly fresh) %Item{} struct the caller should use afterwards.
+  defp ensure_board_item(%Abyss.Board.Item{} = item) do
+    case Board.get_item(item.id) do
+      %Abyss.Board.Item{} -> item
+      _ ->
+        {:ok, fresh} = Board.register_item(item.item_id, item.count)
+        fresh
     end
   end
 
