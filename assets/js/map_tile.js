@@ -18,8 +18,12 @@ export default class MapTile {
     // pathfindBlocks: tiles with `blockPathfind: true` env items (water,
     //   swamp, lava). The player can step into them with direction keys
     //   but click-to-move auto-walk routes around them.
+    // staticElevation: how many baked-in env items on this tile have
+    //   hasElevation (tables, counters). Loose items dropped on top of
+    //   them inherit the elevation offset.
     this.staticBlocks = false;
     this.pathfindBlocks = false;
+    this.staticElevation = 0;
     this.blocks = false;
     this.envSprites = [];
     this.objects = [];
@@ -139,12 +143,14 @@ export default class MapTile {
     const start = Math.max(0, this.items.length - MAX_VISIBLE_ITEMS);
     const visible = this.items.slice(start);
 
-    // The visual stack offset is driven solely by hasElevation items
-    // already rendered below. A pile of ropes (no elevation) overlaps
-    // exactly; a box on top of a rock still sits at floor level because
-    // the rock doesn't elevate; box → rock → box lifts the second box
-    // by one step (the first box) only.
-    let elevationCount = 0;
+    // The visual stack offset is driven by hasElevation items rendered
+    // below — both static env items (tables, counters) AND any loose
+    // Board items already drawn lower in the stack. A pile of ropes
+    // (no elevation) overlaps exactly; a box on top of a rock still
+    // sits at floor level because the rock doesn't elevate; box →
+    // rock → box lifts the second box by one step (the first box)
+    // only. An item dropped on a table is lifted by the table's step.
+    let elevationCount = this.staticElevation;
     visible.forEach((it) => {
       const def = items[String(it.item_id)];
       if (!def) return;
@@ -200,7 +206,7 @@ export default class MapTile {
   }
 
   elevationCount() {
-    let count = 0;
+    let count = this.staticElevation;
     for (const it of this.items) {
       const def = items[String(it.item_id)];
       if (def && def.hasElevation) count++;

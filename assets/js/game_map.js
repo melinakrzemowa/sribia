@@ -101,6 +101,7 @@ export default class GameMap {
         tile.createEnv(items[item.id]);
         tile.staticBlocks = tile.staticBlocks || !!items[item.id].isUnpassable;
         tile.pathfindBlocks = tile.pathfindBlocks || !!items[item.id].blockPathfind;
+        if (items[item.id].hasElevation) tile.staticElevation += 1;
       });
     }
 
