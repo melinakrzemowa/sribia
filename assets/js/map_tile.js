@@ -15,7 +15,11 @@ export default class MapTile {
     // blocks: combined view used by pathfinding; recomputed whenever items
     //   change so a movable statue dropped on a tile gates pathfind there
     //   and the tile becomes walkable again once it's removed.
+    // pathfindBlocks: tiles with `blockPathfind: true` env items (water,
+    //   swamp, lava). The player can step into them with direction keys
+    //   but click-to-move auto-walk routes around them.
     this.staticBlocks = false;
+    this.pathfindBlocks = false;
     this.blocks = false;
     this.envSprites = [];
     this.objects = [];

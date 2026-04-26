@@ -231,6 +231,11 @@ export default class MainState extends Phaser.State {
 
     this.channel.join();
 
+    // Fixed-camera UI (sidebar, chat, gap, chat handle) lives in this group.
+    // It's brought to the top of the world every frame so player name labels
+    // and other late-added world sprites can never visually punch through it.
+    this.uiGroup = this.add.group();
+
     // Fill gap between tile area and sidebar
     this.gapGfx = this.game.add.graphics(0, 0);
     this.gapGfx.fixedToCamera = true;
@@ -242,6 +247,10 @@ export default class MainState extends Phaser.State {
     // Initialize and create right panel (sidebar)
     this.rightPanel = new RightPanelState(this.game, this);
     this.rightPanel.create();
+
+    // Move all UI display objects into uiGroup so a single bringToTop in
+    // update() keeps them above the world.
+    this.reparentUi();
 
     // Handle window resize with debounce — if field changes, reload for clean state
     this._resizeTimer = null;
@@ -287,6 +296,32 @@ export default class MainState extends Phaser.State {
       this.chatHandleSprite.cameraOffset.setTo(0, tileH - this.s_dpr(2));
     }
     this.rightPanel.rebuild(newW, newH);
+    this.reparentUi();
+  }
+
+  // Move every fixed-camera UI display object into uiGroup. Called once at
+  // create(), and again after right-panel rebuild() (which destroys and
+  // re-creates its sprites). Idempotent — already-parented objects pop into
+  // place without side effects.
+  reparentUi() {
+    const items = [];
+    if (this.gapGfx) items.push(this.gapGfx);
+    if (this.chatHandleGfx) items.push(this.chatHandleGfx);
+    if (this.chatHandleSprite) items.push(this.chatHandleSprite);
+    if (this.chatRenderer) {
+      if (this.chatRenderer.bgGfx) items.push(this.chatRenderer.bgGfx);
+      if (this.chatRenderer.sprite) items.push(this.chatRenderer.sprite);
+    }
+    if (this.rightPanel) {
+      if (this.rightPanel.bgGfx) items.push(this.rightPanel.bgGfx);
+      if (this.rightPanel.hpGfx) items.push(this.rightPanel.hpGfx);
+      if (this.rightPanel.mpGfx) items.push(this.rightPanel.mpGfx);
+      if (this.rightPanel.sprites) items.push(...this.rightPanel.sprites);
+      if (this.rightPanel.texts) items.push(...this.rightPanel.texts);
+      if (this.rightPanel.interactives) items.push(...this.rightPanel.interactives);
+      if (this.rightPanel.equipmentSprites) items.push(...this.rightPanel.equipmentSprites);
+    }
+    items.forEach((c) => c && this.uiGroup.add(c));
   }
 
   setupChat(cw, ch) {
@@ -539,7 +574,7 @@ export default class MainState extends Phaser.State {
     const path = findPath(
       this.player.position,
       { x: tx, y: ty },
-      (x, y) => this.map.isBlocked(x, y)
+      (x, y) => this.map.isPathfindBlocked(x, y)
     );
     if (path && path.length > 0) this.clickPath = path;
   }
@@ -556,8 +591,8 @@ export default class MainState extends Phaser.State {
       for (let dy = -1; dy <= 1; dy++) {
         if (dx === 0 && dy === 0) continue;
         const t = { x: target.x + dx, y: target.y + dy };
-        if (this.map.isBlocked(t.x, t.y)) continue;
-        const path = findPath(start, t, (x, y) => this.map.isBlocked(x, y));
+        if (this.map.isPathfindBlocked(t.x, t.y)) continue;
+        const path = findPath(start, t, (x, y) => this.map.isPathfindBlocked(x, y));
         if (path && (!best || path.length < best.length)) best = path;
       }
     }
@@ -743,6 +778,11 @@ export default class MainState extends Phaser.State {
       });
       this.performance.lastGroupSize = currentGroupSize;
     }
+
+    // Keep the UI group above all world sprites. New name labels / item
+    // sprites get appended to world.children after creation; without this
+    // they'd render on top of the chat and the right panel.
+    if (this.uiGroup) this.world.bringToTop(this.uiGroup);
 
     // Update right panel
     if (this.rightPanel) {

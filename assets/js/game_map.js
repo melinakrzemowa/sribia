@@ -93,11 +93,20 @@ export default class GameMap {
 
         tile.createEnv(items[item.id]);
         tile.staticBlocks = tile.staticBlocks || !!items[item.id].isUnpassable;
+        tile.pathfindBlocks = tile.pathfindBlocks || !!items[item.id].blockPathfind;
       });
     }
 
     tile.loaded = true;
     tile.recomputeBlocks();
+  }
+
+  // Used by the click-to-move pathfinder. Combines hard blockers (used by
+  // direct movement too) with `blockPathfind` tiles like water/lava that
+  // shouldn't be auto-walked into but stay manually accessible.
+  isPathfindBlocked(x, y) {
+    const tile = this.getTile(x, y);
+    return tile.blocks || tile.pathfindBlocks || tile.getObjects().length != 0;
   }
 
   getTile(x, y) {

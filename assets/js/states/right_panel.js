@@ -175,6 +175,10 @@ export default class RightPanelState {
     this._renderEquipmentSprites();
     this._lastHealth = -1; this._lastMana = -1;
     this.updateBars();
+    // New sprites land in the world by default — reparent everything into
+    // the main UI group so a single bringToTop in the per-frame update
+    // keeps the panel above any name labels added later.
+    if (this.mainState && this.mainState.reparentUi) this.mainState.reparentUi();
   }
 
   redraw() { this.rebuild(this.panelX + this.width, this.panelH); }
