@@ -2,8 +2,11 @@ defmodule Abyss.Game do
   alias Abyss.{Accounts, Board}
 
   @starting_position {32097, 32219}
+  # Visible viewport is fixed at 15 tiles wide × 11 tall (TILE_COLS / TILE_ROWS
+  # in globals.js), player centered. The actual exposed range needs ±7 / ±5;
+  # +1 on each axis as a buffer covers the tween scroll between moves.
   @map_range_x 8
-  @map_range_y 8
+  @map_range_y 6
 
   def join(user_id) do
     user =
@@ -20,7 +23,7 @@ defmodule Abyss.Game do
   end
 
   def get_fields({x, y}) do
-    Board.get_fields({x, y}, {8, 8})
+    Board.get_fields({x, y}, {@map_range_x, @map_range_y})
     |> Enum.map(fn {position, field} -> {position, load_field(field)} end)
   end
 
