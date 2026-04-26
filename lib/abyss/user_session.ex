@@ -163,6 +163,7 @@ defmodule Abyss.UserSession do
         :exit, _ -> %{}
       end
 
+    monitor_board()
     {:noreply, %{state | equipment: equipment}}
   end
 
@@ -259,6 +260,48 @@ defmodule Abyss.UserSession do
     {:noreply, %{state | persist_pending: false}}
   end
 
+  # Board GenServer died. The supervisor will restart it, but every %Item{}
+  # in our equipment map now references an id that's gone with the old
+  # container. Defer a resync so the new Board has time to come up before
+  # we try to re-register.
+  def handle_info({:DOWN, _ref, :process, _pid, _reason}, state) do
+    Process.send_after(self(), :resync_equipment_with_board, 100)
+    {:noreply, state}
+  end
+
+  def handle_info(:resync_equipment_with_board, state) do
+    case Process.whereis(Abyss.Board) do
+      nil ->
+        # Board not back yet — try again shortly.
+        Process.send_after(self(), :resync_equipment_with_board, 100)
+        {:noreply, state}
+
+      _pid ->
+        monitor_board()
+
+        # Re-register only items the new Board doesn't recognise. An item
+        # whose id is still valid is either:
+        #   - The same Board never crashed (we got a stale :DOWN somehow)
+        #     → keep the existing %Item{} as-is.
+        #   - Already re-registered earlier in this session → keep it.
+        # In both cases re-registering would create a duplicate item in the
+        # Board's items map; the get_item gate prevents that.
+        equipment =
+          Map.new(state.equipment, fn {slot, item} ->
+            case Abyss.Board.get_item(item.id) do
+              %Abyss.Board.Item{} ->
+                {slot, item}
+
+              _ ->
+                {:ok, fresh} = Abyss.Board.register_item(item.item_id, item.count)
+                {slot, fresh}
+            end
+          end)
+
+        {:noreply, %{state | equipment: equipment}}
+    end
+  end
+
   @impl true
   def terminate(_reason, state) do
     if state.persist_pending do
@@ -276,6 +319,16 @@ defmodule Abyss.UserSession do
 
   defp schedule_session_cleanup do
     Process.send_after(self(), :session_cleanup, @cleanup_time)
+  end
+
+  # Watch the Board so we can rebind equipment items whenever it crashes
+  # and the supervisor restarts it. Safe to call repeatedly; multiple
+  # monitors on the same pid each fire one :DOWN.
+  defp monitor_board do
+    case Process.whereis(Abyss.Board) do
+      nil -> :ok
+      pid -> Process.monitor(pid)
+    end
   end
 
   # Schedule a persist to disk @persist_delay milliseconds from now. If a
