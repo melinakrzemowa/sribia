@@ -40,6 +40,13 @@ export default class GameMap {
     let tile = this.getTile(mapTile.x, mapTile.y);
 
     if (!tile.loaded && mapTile.id) {
+      // The ground tile itself can be a blocker (water, lava). Older code
+      // only checked items on the tile, so water was silently walkable.
+      const groundDef = items[mapTile.id];
+      if (groundDef) {
+        if (groundDef.isUnpassable) tile.staticBlocks = true;
+        if (groundDef.blockPathfind) tile.pathfindBlocks = true;
+      }
       let mapTileData = items[mapTile.id].groups[0];
       let pattern =
         (mapTile.x % mapTileData.patternX) +

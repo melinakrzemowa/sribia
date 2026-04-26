@@ -102,6 +102,42 @@ defmodule Abyss.Items do
     end
   end
 
+  @doc """
+  Whether the static map at `pos` (z = 7) blocks movement / line of sight.
+  Inspects both the ground tile id (water, walls baked into the tileset)
+  and any env items on the tile. Loose items are skipped — those are
+  authoritative from the Board, so callers handle them separately.
+  """
+  def env_blocks_movement?({x, y}) do
+    case Cachex.get(:map, {x, y, 7}) do
+      {:ok, %{id: ground_id, items: items}} ->
+        blocks?(ground_id) or
+          Enum.any?(items || [], fn item ->
+            not loose?(item) and blocks?(item)
+          end)
+
+      _ ->
+        false
+    end
+  end
+
+  @doc """
+  Whether the static map at `pos` accepts a movable item being dropped on
+  it. Same combined ground + items inspection but using the stricter
+  `allows_placement?` rule so the rule about movable blockers (statues)
+  isn't double-applied — those are handled live via the Board.
+  """
+  def env_allows_placement?({x, y}) do
+    case Cachex.get(:map, {x, y, 7}) do
+      {:ok, %{id: ground_id, items: items}} ->
+        allows_placement?(ground_id) and
+          (items || []) |> Enum.reject(&loose?/1) |> can_place_on?()
+
+      _ ->
+        true
+    end
+  end
+
   @impl true
   def init(_) do
     :ets.new(@table, [:named_table, :public, read_concurrency: true])

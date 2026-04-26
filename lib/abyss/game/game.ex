@@ -58,26 +58,14 @@ defmodule Abyss.Game do
 
   @doc """
   Returns true if a movable item can be dropped on the tile at `{x, y}` on
-  the game level (z = 7). The tile is rejected when any of its env items is
-  an unpassable, unmoveable surface without `hasElevation` (trees, walls),
-  OR when there's a live Board item at that tile that itself blocks (e.g.
-  a moved statue still rejects placement at its current position).
+  the game level (z = 7). The tile is rejected when any of its env (ground
+  or items) is an unpassable, unmoveable surface without `hasElevation`
+  (water, trees, walls), OR when there's a live Board item at that tile
+  that itself blocks (e.g. a moved statue still rejects placement at its
+  current position).
   """
-  def can_place_on_tile?({x, y}) do
-    static_ok =
-      case Cachex.get(:map, {x, y, 7}) do
-        {:ok, %{items: items}} when is_list(items) ->
-          # Loose items in the static map have been promoted to live Board
-          # items; skip them here, the live check below answers for them.
-          items
-          |> Enum.reject(&Abyss.Items.loose?/1)
-          |> Abyss.Items.can_place_on?()
-
-        _ ->
-          true
-      end
-
-    static_ok and not live_blocks_placement?({x, y})
+  def can_place_on_tile?({_x, _y} = pos) do
+    Abyss.Items.env_allows_placement?(pos) and not live_blocks_placement?(pos)
   end
 
   defp live_blocks_placement?({x, y}) do
@@ -289,22 +277,9 @@ defmodule Abyss.Game do
     end
   end
 
-  defp blocks_los?({x, y}, ignore) do
-    static_blocks =
-      case Cachex.get(:map, {x, y, 7}) do
-        {:ok, %{items: items}} when is_list(items) ->
-          # Loose items have been promoted to Board state; only static env
-          # items still answer authoritatively from Cachex.
-          Enum.any?(items, fn item ->
-            not Abyss.Items.loose?(item) and Abyss.Items.blocks?(item)
-          end)
-
-        _ ->
-          false
-      end
-
-    static_blocks or
-      Enum.any?(Board.get_items({x, y}), fn item ->
+  defp blocks_los?({_x, _y} = pos, ignore) do
+    Abyss.Items.env_blocks_movement?(pos) or
+      Enum.any?(Board.get_items(pos), fn item ->
         item.id != ignore and Abyss.Items.blocks?(item.item_id)
       end)
   end

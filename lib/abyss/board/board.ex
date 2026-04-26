@@ -124,11 +124,19 @@ defmodule Abyss.Board do
     position = Container.get_position(container, type, object)
     new_position = Moves.add(position, Directions.calc(direction))
 
-    if Container.blocks?(container, new_position) do
-      {:reply, {:error, position}, container}
-    else
-      container = Container.move(container, new_position, type, object)
-      {:reply, {:ok, new_position}, container}
+    cond do
+      # Static map blockers (water, trees, walls baked into the tileset)
+      # — Container only knows live placements, so without this the server
+      # silently accepts walks onto water.
+      Abyss.Items.env_blocks_movement?(new_position) ->
+        {:reply, {:error, position}, container}
+
+      Container.blocks?(container, new_position) ->
+        {:reply, {:error, position}, container}
+
+      true ->
+        container = Container.move(container, new_position, type, object)
+        {:reply, {:ok, new_position}, container}
     end
   end
 
