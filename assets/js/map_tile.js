@@ -110,8 +110,7 @@ export default class MapTile {
                 frames[f] = itemData.sprites[index].toString();
               }
 
-              sprite.animations.add("idle", frames);
-              sprite.animations.play("idle", 2, true);
+              this.map.registerAnimatedTile(sprite, frames);
             }
           }
         }

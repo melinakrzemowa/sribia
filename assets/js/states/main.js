@@ -699,6 +699,10 @@ export default class MainState extends Phaser.State {
   }
 
   update() {
+    // Step every animated tile from a single shared clock so newly-loaded
+    // tiles drop into phase with already-rendered ones (water etc.).
+    if (this.map && this.map.tickAnimations) this.map.tickAnimations();
+
     let direction = { x: 0, y: 0 };
 
     if (this.stick.isDown) {

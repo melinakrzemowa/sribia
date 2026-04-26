@@ -2,10 +2,46 @@ import MapTile from "./map_tile";
 import items from "./data/items.json" assert { type: "json" };
 import { mapSize, field, size, scale } from "./globals";
 
+// Phaser's per-sprite animation clock starts when each sprite is created,
+// so tiles loaded later (a leading column entering view as the player walks)
+// drift out of phase with already-rendered tiles. We swap frames manually
+// from a single global clock, sampled in tickAnimations() — every animated
+// sprite shows the same frame at any wall-clock instant regardless of when
+// it joined the map.
+const TILE_ANIM_FPS = 2;
+const TILE_ANIM_FRAME_MS = 1000 / TILE_ANIM_FPS;
+
 export default class GameMap {
   constructor(state) {
     this.map = new Map();
     this.state = state;
+    // Each entry: { sprite, frames, lastIdx }. tickAnimations() iterates the
+    // list once per frame and updates frameName when the global frame index
+    // changes (so most ticks are no-ops between frame boundaries).
+    this.animatedTiles = [];
+  }
+
+  registerAnimatedTile(sprite, frames) {
+    if (!frames || frames.length < 2) return;
+    const idx = this._currentFrameIdx(frames.length);
+    sprite.frameName = frames[idx];
+    this.animatedTiles.push({ sprite, frames, lastIdx: idx });
+  }
+
+  _currentFrameIdx(len) {
+    return Math.floor(Date.now() / TILE_ANIM_FRAME_MS) % len;
+  }
+
+  tickAnimations() {
+    if (this.animatedTiles.length === 0) return;
+    const now = Date.now();
+    for (const a of this.animatedTiles) {
+      const idx = Math.floor(now / TILE_ANIM_FRAME_MS) % a.frames.length;
+      if (idx !== a.lastIdx) {
+        a.sprite.frameName = a.frames[idx];
+        a.lastIdx = idx;
+      }
+    }
   }
 
   isBlocked(x, y) {
@@ -87,8 +123,7 @@ export default class GameMap {
               frames[f] = mapTileData.sprites[index].toString();
             }
 
-            sprite.animations.add("idle", frames);
-            sprite.animations.play("idle", 2, true);
+            this.registerAnimatedTile(sprite, frames);
           }
         }
       }
