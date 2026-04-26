@@ -321,7 +321,18 @@ export default class MainState extends Phaser.State {
       if (this.rightPanel.interactives) items.push(...this.rightPanel.interactives);
       if (this.rightPanel.equipmentSprites) items.push(...this.rightPanel.equipmentSprites);
     }
-    items.forEach((c) => c && this.uiGroup.add(c));
+    // Phaser 2's Group.add is a no-op when the child is already in the
+    // group, so a plain add doesn't re-order things — we need bringToTop
+    // for items that are already inside uiGroup. Iteration order then
+    // determines z-order: later in `items` = on top.
+    items.forEach((c) => {
+      if (!c) return;
+      if (c.parent === this.uiGroup) {
+        this.uiGroup.bringToTop(c);
+      } else {
+        this.uiGroup.add(c);
+      }
+    });
   }
 
   setupChat(cw, ch) {
