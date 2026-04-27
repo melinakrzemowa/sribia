@@ -67,7 +67,7 @@ jobs:
           echo "${{ secrets.PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           cat >> ~/.ssh/config << 'EOF'
-          Host ssh.melinakrzemowa.pl
+          Host airssh.melinakrzemowa.pl
             ProxyCommand cloudflared access ssh --hostname %h
             StrictHostKeyChecking no
             UserKnownHostsFile /dev/null
@@ -77,12 +77,16 @@ jobs:
         run: |
           VERSION=${{ steps.previoustag.outputs.tag }}-${{ steps.get_hash.outputs.HASH }}
 
-          scp docker-compose.yml ${{ secrets.SSH_USERNAME }}@ssh.melinakrzemowa.pl:/home/${{ secrets.SSH_USERNAME }}/deploy/sribia/
+          DEPLOY_DIR=/Users/${{ secrets.SSH_USERNAME }}/services/sribia.melinakrzemowa.pl
+          SSH_TARGET=${{ secrets.SSH_USERNAME }}@airssh.melinakrzemowa.pl
 
-          ssh ${{ secrets.SSH_USERNAME }}@ssh.melinakrzemowa.pl << DEPLOY
-            sudo mv /home/${{ secrets.SSH_USERNAME }}/deploy/sribia/docker-compose.yml /var/www/sribia.melinakrzemowa.pl/docker-compose.yml
-            cd /var/www/sribia.melinakrzemowa.pl
-            sudo sed -i 's/^VERSION=.*/VERSION=${VERSION}/' .env
+          scp docker-compose.yml $SSH_TARGET:$DEPLOY_DIR/docker-compose.yml
+
+          # macOS BSD sed needs an explicit empty backup-ext arg.
+          ssh $SSH_TARGET << DEPLOY
+            set -e
+            cd $DEPLOY_DIR
+            sed -i '' 's/^VERSION=.*/VERSION=${VERSION}/' .env
             docker pull ghcr.io/melinakrzemowa/sribia:${VERSION}
             docker compose up -d
             # Apply pending Ecto migrations against the running release.
