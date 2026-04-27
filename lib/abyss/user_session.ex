@@ -1,31 +1,44 @@
 defmodule Abyss.UserSession do
   @moduledoc """
-  GenServer for managing individual user sessions.
-  Each connected user has their own UserSession process.
+  GenServer that owns the live state for one connected player.
 
-  This will eventually handle:
-  - User state (position, stats, inventory, etc.)
-  - Connection management
-  - State serialization to database
-  - Real-time game logic
+  In-memory state is the source of truth while the user is online — every
+  read of position / equipment / health / speed / last_move goes through
+  this process, never the database. Writes (movement, equip, take damage,
+  …) update the session and schedule a single debounced UPDATE that
+  flushes everything together. The DB is just a snapshot we restore from
+  on next login or after a server crash.
   """
   use GenServer
   require Logger
 
   alias Abyss.{Accounts, Equipment}
 
+  @starting_position {32097, 32219}
+
   @cleanup_time Application.compile_env(:abyss, :user_session_cleanup_time, 10_000)
   @persist_delay Application.compile_env(:abyss, :user_session_persist_delay, 5_000)
 
   defstruct [
     :user_id,
+    :name,
     :channel_pid,
+    # Position / last_move / speed / health / max_health are mirrored from
+    # the user row at init and then maintained in-memory. Game.move,
+    # Game.move_item, equip / unequip, etc. all read from here and only
+    # write to the DB through the debounced persist path.
+    position: nil,
+    last_move: nil,
+    speed: 1,
+    health: 100,
+    max_health: 100,
     # `equipment` is %{slot_atom => %Abyss.Board.Item{}} — the live runtime
     # equipment for this user. Items here are also registered in the Board's
     # items map (via register_item) so they share the global instance-id
     # space.
     equipment: %{},
-    # Set to true when there's a pending :persist_equipment timer running.
+    # Bumped to true whenever any persisted field changes; cleared after the
+    # next :persist_state flush.
     persist_pending: false
   ]
 
@@ -85,6 +98,46 @@ defmodule Abyss.UserSession do
   end
 
   @doc """
+  Returns the live in-memory state for this user. Always go through here —
+  never re-read the user row from the database for connected players.
+  """
+  def get_state(user_id) do
+    case get_or_start(user_id) do
+      {:ok, _pid} -> GenServer.call(via_tuple(user_id), :get_state)
+      _ -> nil
+    end
+  end
+
+  @doc """
+  Returns the live in-memory state if a session is already running for this
+  user, or `nil` otherwise. Use this when you DON'T want to spin up a
+  session for an offline player (e.g. iterating users visible on the
+  board — they're guaranteed to have a live session because that's how
+  they got added in the first place, but we keep it guarded so a stray
+  read of an unknown id doesn't materialise an empty session).
+  """
+  def get_state_if_running(user_id) do
+    case get_session(user_id) do
+      nil -> nil
+      _pid -> GenServer.call(via_tuple(user_id), :get_state)
+    end
+  end
+
+  @doc """
+  Update the player's tile position and the timestamp of their last move.
+  Schedules a debounced DB flush.
+  """
+  def update_position(user_id, {_x, _y} = position, %NaiveDateTime{} = last_move) do
+    case get_or_start(user_id) do
+      {:ok, _pid} ->
+        GenServer.call(via_tuple(user_id), {:update_position, position, last_move})
+
+      err ->
+        err
+    end
+  end
+
+  @doc """
   Returns the entire equipment map for `user_id`. Starts the session if it
   isn't running yet.
   """
@@ -133,38 +186,60 @@ defmodule Abyss.UserSession do
   def init(user_id) do
     Logger.info("Starting UserSession for user #{user_id}")
 
-    state = %__MODULE__{
-      user_id: user_id,
-      channel_pid: nil,
-      equipment: %{}
-    }
+    state = %__MODULE__{user_id: user_id}
 
-    {:ok, state, {:continue, :load_equipment}}
+    {:ok, state, {:continue, :load_state}}
   end
 
   @impl true
-  def handle_continue(:load_equipment, state) do
-    equipment =
+  def handle_continue(:load_state, state) do
+    state =
       try do
         case Accounts.get_user(state.user_id) do
-          nil -> %{}
-          user -> Equipment.from_persisted(user.equipment || %{})
+          nil ->
+            state
+
+          user ->
+            position =
+              cond do
+                is_nil(user.x) or is_nil(user.y) -> @starting_position
+                true -> {user.x, user.y}
+              end
+
+            last_move = user.last_move || NaiveDateTime.utc_now()
+
+            persist_pending? =
+              is_nil(user.x) or is_nil(user.y) or is_nil(user.last_move)
+
+            state = %{
+              state
+              | name: user.name,
+                position: position,
+                last_move: last_move,
+                speed: user.speed || 1,
+                health: user.health || 100,
+                max_health: user.max_health || 100,
+                equipment: Equipment.from_persisted(user.equipment || %{})
+            }
+
+            if persist_pending?, do: schedule_persist(state), else: state
         end
       rescue
         # In tests UserSessions can be started by processes that don't own
-        # the SQL sandbox; equipment load fails harmlessly with an empty map.
-        DBConnection.OwnershipError -> %{}
+        # the SQL sandbox; load fails harmlessly with the default struct.
+        DBConnection.OwnershipError -> state
+
         e ->
-          Logger.warning("UserSession #{state.user_id} could not load equipment: #{inspect(e)}")
-          %{}
+          Logger.warning("UserSession #{state.user_id} could not load state: #{inspect(e)}")
+          state
       catch
         # Same protection for the case where the sandbox owner exits while
         # the load query is in flight (manifests as `:exit` on Repo.get).
-        :exit, _ -> %{}
+        :exit, _ -> state
       end
 
     monitor_board()
-    {:noreply, %{state | equipment: equipment}}
+    {:noreply, state}
   end
 
   @impl true
@@ -224,6 +299,17 @@ defmodule Abyss.UserSession do
   end
 
   @impl true
+  def handle_call(:get_state, _from, state) do
+    {:reply, public_state(state), state}
+  end
+
+  def handle_call({:update_position, position, last_move}, _from, state) do
+    state =
+      schedule_persist(%{state | position: position, last_move: last_move})
+
+    {:reply, :ok, state}
+  end
+
   def handle_call(:get_equipment, _from, state) do
     {:reply, state.equipment, state}
   end
@@ -255,8 +341,8 @@ defmodule Abyss.UserSession do
     end
   end
 
-  def handle_info(:persist_equipment, state) do
-    persist_equipment(state)
+  def handle_info(:persist_state, state) do
+    persist_state(state)
     {:noreply, %{state | persist_pending: false}}
   end
 
@@ -279,7 +365,7 @@ defmodule Abyss.UserSession do
 
       _pid ->
         monitor_board()
-        re_add_user_to_board(state.user_id)
+        re_add_user_to_board(state, state.user_id)
 
         # Re-register only items the new Board doesn't recognise. An item
         # whose id is still valid is either:
@@ -307,7 +393,7 @@ defmodule Abyss.UserSession do
   @impl true
   def terminate(_reason, state) do
     if state.persist_pending do
-      persist_equipment(state)
+      persist_state(state)
     end
 
     :ok
@@ -338,21 +424,11 @@ defmodule Abyss.UserSession do
   # Container.put inside Board.add_user is idempotent (it deletes any prior
   # registration before inserting), so this is safe to call even when the
   # user is already on the board.
-  defp re_add_user_to_board(user_id) do
-    try do
-      case Accounts.get_user(user_id) do
-        %{x: x, y: y} when not is_nil(x) and not is_nil(y) ->
-          Abyss.Board.add_user({x, y}, user_id)
-
-        _ ->
-          :ok
-      end
-    rescue
-      _ -> :ok
-    catch
-      :exit, _ -> :ok
-    end
+  defp re_add_user_to_board(%__MODULE__{position: {x, y}}, user_id) do
+    Abyss.Board.add_user({x, y}, user_id)
   end
+
+  defp re_add_user_to_board(_, _), do: :ok
 
   # Schedule a persist to disk @persist_delay milliseconds from now. If a
   # timer is already pending we just leave it — further changes within the
@@ -360,24 +436,55 @@ defmodule Abyss.UserSession do
   defp schedule_persist(%{persist_pending: true} = state), do: state
 
   defp schedule_persist(state) do
-    Process.send_after(self(), :persist_equipment, @persist_delay)
+    Process.send_after(self(), :persist_state, @persist_delay)
     %{state | persist_pending: true}
   end
 
-  defp persist_equipment(%{user_id: user_id, equipment: equipment}) do
+  # The DB is a snapshot of the in-memory state. We always reload the user
+  # row before writing so a cross-session DB edit (e.g. an admin script)
+  # isn't silently overwritten by stale fields we never touched.
+  defp persist_state(%{user_id: user_id} = state) do
     case Accounts.get_user(user_id) do
       nil ->
         :ok
 
       user ->
-        case Accounts.update_user(user, %{equipment: Equipment.to_persisted(equipment)}) do
+        attrs = %{
+          equipment: Equipment.to_persisted(state.equipment),
+          last_move: state.last_move
+        }
+
+        attrs =
+          case state.position do
+            {x, y} -> Map.merge(attrs, %{x: x, y: y})
+            _ -> attrs
+          end
+
+        attrs = Map.merge(attrs, %{health: state.health, max_health: state.max_health})
+
+        case Accounts.update_user(user, attrs) do
           {:ok, _} ->
             :ok
 
           {:error, changeset} ->
-            Logger.error("Failed to persist equipment for user #{user_id}: #{inspect(changeset)}")
+            Logger.error("Failed to persist state for user #{user_id}: #{inspect(changeset)}")
             :error
         end
     end
+  end
+
+  # Strip internal fields (channel_pid, persist_pending) from the snapshot
+  # we hand out via :get_state.
+  defp public_state(state) do
+    %{
+      user_id: state.user_id,
+      name: state.name,
+      position: state.position,
+      last_move: state.last_move,
+      speed: state.speed,
+      health: state.health,
+      max_health: state.max_health,
+      equipment: state.equipment
+    }
   end
 end

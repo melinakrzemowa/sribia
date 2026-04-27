@@ -1,21 +1,41 @@
 defmodule Abyss.Game do
-  alias Abyss.{Accounts, Board}
+  alias Abyss.{Accounts, Board, UserSession}
+  alias Abyss.Accounts.User
 
-  @starting_position {32097, 32219}
   # Visible viewport is fixed at 15 tiles wide × 11 tall (TILE_COLS / TILE_ROWS
   # in globals.js), player centered. The actual exposed range needs ±7 / ±5;
   # +1 on each axis as a buffer covers the tween scroll between moves.
   @map_range_x 8
   @map_range_y 6
 
-  def join(user_id) do
-    user =
-      user_id
-      |> Accounts.get_user!()
-      |> check_position
+  @doc """
+  Bring this user into the world: hydrate the live UserSession (which loads
+  from DB on first start, including a starting-position fallback for fresh
+  accounts), register them on the Board, and write back the resulting
+  position if the Board chose a different free spot.
 
-    {:ok, position} = Board.add_user({user.x, user.y}, user_id)
-    update_user_position(user, position)
+  Returns a `%User{}`-shaped struct populated from the *session* — not a
+  fresh DB read — so the channel handler ships authoritative live data
+  rather than whatever was last flushed.
+  """
+  def join(user_id) do
+    state = UserSession.get_state(user_id)
+    {:ok, {nx, ny}} = Board.add_user(state.position, user_id)
+
+    if {nx, ny} != state.position do
+      UserSession.update_position(user_id, {nx, ny}, state.last_move)
+    end
+
+    %User{
+      id: user_id,
+      name: state.name,
+      x: nx,
+      y: ny,
+      speed: state.speed,
+      health: state.health,
+      max_health: state.max_health,
+      last_move: state.last_move
+    }
   end
 
   def leave(user_id) do
@@ -106,12 +126,38 @@ defmodule Abyss.Game do
   end
 
   defp load_object({{:user, id}, _blocks}, opts) do
-    if opts[:except_user] == id, do: nil, else: Accounts.get_user!(id)
+    cond do
+      opts[:except_user] == id ->
+        nil
+
+      state = UserSession.get_state_if_running(id) ->
+        # Live in-memory state — no DB hit. Other player's session is
+        # guaranteed running because that's how they got onto the board.
+        session_state_to_user(id, state)
+
+      true ->
+        # Defensive fallback if a board entry somehow outlives its session
+        # (e.g. mid-shutdown race) — rare and not on the hot path.
+        Accounts.get_user!(id)
+    end
   end
 
   # Item entries from Board.get_fields are already %Abyss.Board.Item{} —
   # the Board resolves them inline now to avoid an N+1 round-trip.
   defp load_object(object, _opts), do: object
+
+  defp session_state_to_user(user_id, %{position: {x, y}} = state) do
+    %User{
+      id: user_id,
+      name: state.name,
+      x: x,
+      y: y,
+      speed: state.speed,
+      health: state.health,
+      max_health: state.max_health,
+      last_move: state.last_move
+    }
+  end
 
   def spawn_item({x, y} = position, item_id, count \\ 1) do
     if can_place_on_tile?(position) do
@@ -158,15 +204,16 @@ defmodule Abyss.Game do
     - the item is the top of its source stack (Board does this last check)
   """
   def move_item(user_id, instance_id, {_x, _y} = new_pos) do
+    user_pos = UserSession.get_state(user_id).position
+
     with %Abyss.Board.Item{} = item <- Board.get_item(instance_id),
          old_pos when not is_nil(old_pos) <- Board.get_position(:item, instance_id),
-         user <- Accounts.get_user!(user_id),
-         true <- adjacent?({user.x, user.y}, old_pos) || {:error, :too_far_from_source},
+         true <- adjacent?(user_pos, old_pos) || {:error, :too_far_from_source},
          # Same rule as TFS: LOS is checked from the PLAYER's tile to the
          # destination, not from the item's source. The moving instance is
          # excluded from the LOS check — otherwise pushing a statue past
          # itself would be self-blocked.
-         true <- line_of_sight?({user.x, user.y}, new_pos, ignore_item: instance_id) || {:error, :no_los},
+         true <- line_of_sight?(user_pos, new_pos, ignore_item: instance_id) || {:error, :no_los},
          true <- movable?(item) || {:error, :unmoveable},
          true <- can_place_on_tile?(new_pos) || {:error, :tile_blocked} do
       Board.move_item(instance_id, new_pos)
@@ -191,11 +238,12 @@ defmodule Abyss.Game do
   def equip_item(user_id, instance_id, slot) do
     with true <- Abyss.Equipment.valid_slot?(slot) || {:error, :invalid_slot},
          %Abyss.Board.Item{} = item <- Board.get_item(instance_id),
-         true <- Abyss.Equipment.slot_accepts?(slot, item.item_id) || {:error, :wrong_slot},
-         user <- Accounts.get_user!(user_id) do
+         true <- Abyss.Equipment.slot_accepts?(slot, item.item_id) || {:error, :wrong_slot} do
+      session = UserSession.get_state(user_id)
+
       case Board.get_position(:item, instance_id) do
         nil -> equip_from_slot(user_id, item, slot)
-        source_pos -> equip_from_ground(user_id, user, item, source_pos, slot)
+        source_pos -> equip_from_ground(user_id, session, item, source_pos, slot)
       end
     else
       nil -> {:error, :not_found}
@@ -204,8 +252,8 @@ defmodule Abyss.Game do
     end
   end
 
-  defp equip_from_ground(user_id, user, item, source_pos, slot) do
-    with true <- adjacent?({user.x, user.y}, source_pos) || {:error, :too_far_from_source},
+  defp equip_from_ground(user_id, %{position: user_pos}, item, source_pos, slot) do
+    with true <- adjacent?(user_pos, source_pos) || {:error, :too_far_from_source},
          true <- top_of_stack?(item.id, source_pos) || {:error, :not_top_of_stack} do
       {:ok, ^source_pos} = Board.detach_item(item.id)
       previous = Abyss.UserSession.set_equipment_slot(user_id, slot, item)
@@ -227,7 +275,7 @@ defmodule Abyss.Game do
          source_pos: source_pos,
          displaced: previous,
          from_slot: nil,
-         user_pos: {user.x, user.y}
+         user_pos: user_pos
        }}
     end
   end
@@ -266,8 +314,8 @@ defmodule Abyss.Game do
   def unequip_item(user_id, slot, {_x, _y} = dest_pos) do
     with true <- Abyss.Equipment.valid_slot?(slot) || {:error, :invalid_slot},
          %Abyss.Board.Item{} = item <- Abyss.UserSession.get_equipment_slot(user_id, slot),
-         user <- Accounts.get_user!(user_id),
-         true <- line_of_sight?({user.x, user.y}, dest_pos) || {:error, :no_los},
+         user_pos = UserSession.get_state(user_id).position,
+         true <- line_of_sight?(user_pos, dest_pos) || {:error, :no_los},
          true <- can_place_on_tile?(dest_pos) || {:error, :tile_blocked} do
       Abyss.UserSession.set_equipment_slot(user_id, slot, nil)
       item = ensure_board_item(item)
@@ -389,44 +437,46 @@ defmodule Abyss.Game do
   end
 
   def move(user_id, direction) do
-    user = Accounts.get_user!(user_id)
-    base_move_time = round(100_000 / (2 * (user.speed - 1) + 180))
+    state = UserSession.get_state(user_id)
+    base_move_time = round(100_000 / (2 * (state.speed - 1) + 180))
     # Diagonal steps cover sqrt(2) × the distance of a cardinal step, so they
     # cost twice the cooldown.
     move_time =
       if direction in [:nw, :ne, :sw, :se], do: base_move_time * 2, else: base_move_time
 
-    diff = NaiveDateTime.diff(NaiveDateTime.utc_now(), user.last_move, :millisecond)
+    now = NaiveDateTime.utc_now()
+    diff = NaiveDateTime.diff(now, state.last_move, :millisecond)
+
     # allow slightly faster movement for smooth movement on frontend
     if diff >= move_time * 0.85 do
       case Board.move(:user, user_id, direction) do
         {:ok, position} ->
-          update_user_position(user, position)
+          UserSession.update_position(user_id, position, now)
           {:ok, position, move_time}
 
         {:error, :not_on_board} ->
           # Board lost track of this user (it crashed mid-game and the
           # supervisor restarted with empty state). Re-add the user at
-          # their persisted DB position and try the move once more.
-          {:ok, _pos} = Board.add_user({user.x, user.y}, user_id)
+          # their last in-memory position and try the move once more.
+          {:ok, _pos} = Board.add_user(state.position, user_id)
 
           case Board.move(:user, user_id, direction) do
             {:ok, position} ->
-              update_user_position(user, position)
+              UserSession.update_position(user_id, position, now)
               {:ok, position, move_time}
 
             {:error, position} when is_tuple(position) ->
               {:error, position}
 
             {:error, _} ->
-              {:error, {user.x, user.y}}
+              {:error, state.position}
           end
 
         {:error, position} ->
           {:error, position}
       end
     else
-      {:error, {user.x, user.y}}
+      {:error, state.position}
     end
   end
 
@@ -452,19 +502,4 @@ defmodule Abyss.Game do
   end
 
   defp strip_loose_items(tile), do: tile
-
-  defp check_position(%{x: nil} = user) do
-    update_user_position(user, @starting_position)
-  end
-
-  defp check_position(%{y: nil} = user) do
-    update_user_position(user, @starting_position)
-  end
-
-  defp check_position(user), do: user
-
-  defp update_user_position(user, {x, y}) do
-    {:ok, user} = Accounts.update_user(user, %{x: x, y: y, last_move: NaiveDateTime.utc_now()})
-    user
-  end
 end
