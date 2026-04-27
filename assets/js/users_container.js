@@ -168,6 +168,7 @@ export default class UsersContainer {
 
       // Move sprite with tween and play animation
       user.sprite.animations.play(animation + "_move", 8, true);
+      const animDest = { x, y };
       var tween = this.state.add
         .tween(user.sprite)
         .to({ x: x * field, y: y * field }, payload.move_time, null, true);
@@ -176,6 +177,14 @@ export default class UsersContainer {
         // Stop animation if user stopped moving
         const u = self.container[payload.user_id];
         if (!u) return;
+        // If a newer move arrived while we were tweening, a fresh tween
+        // is now driving the sprite — don't run the post-step snap
+        // (applyElevation would warp the sprite to the new destination
+        // instantly, and the live tween would then visibly bounce back to
+        // its interpolated mid-position on its next update).
+        if (u.movingPosition.x !== animDest.x || u.movingPosition.y !== animDest.y) {
+          return;
+        }
         if (Date.now() - u.moved > 200) {
           u.sprite.animations.stop();
           u.sprite.animations.play(animation + "_stand", 0, true);
