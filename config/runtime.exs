@@ -1,6 +1,14 @@
 import Config
 
 if config_env() == :prod do
+  # OpenTelemetry — export traces to the local somsiad Alloy via OTLP/HTTP.
+  config :opentelemetry,
+    resource: %{service: %{name: "sribia", version: System.get_env("VERSION") || "dev"}}
+
+  config :opentelemetry_exporter,
+    otlp_protocol: :http_protobuf,
+    otlp_endpoint: System.get_env("OTLP_ENDPOINT", "http://host.docker.internal:4318")
+
   database_url =
     System.get_env("DATABASE_URL") ||
       raise """
