@@ -28,6 +28,12 @@ defmodule AbyssWeb.Endpoint do
   plug Plug.RequestId
   plug Plug.Logger
 
+  # Emit [:phoenix, :endpoint, :start | :stop] telemetry for every request.
+  # PromEx's Phoenix HTTP request duration metric attaches to these events.
+  # Without this plug, the somsiad Phoenix dashboard shows blank request
+  # rate / latency panels for sribia (websocket + channel metrics still work).
+  plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
+
   plug Plug.Parsers,
     parsers: [:urlencoded, :multipart, :json],
     pass: ["*/*"],
