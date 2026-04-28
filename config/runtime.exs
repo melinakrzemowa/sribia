@@ -44,6 +44,15 @@ if config_env() == :prod do
   config :abyss, AbyssWeb.Endpoint,
     server: true,
     url: [host: host],
-    http: [:inet6, port: port],
+    http: [
+      :inet6,
+      port: port,
+      # Enable cowboy_telemetry_h so OpenTelemetry can hook HTTP request
+      # spans (sribia uses controllers, not LiveView, so without this the
+      # OTel exporter has nothing to send).
+      protocol_options: [
+        stream_handlers: [:cowboy_telemetry_h, :cowboy_stream_h]
+      ]
+    ],
     secret_key_base: secret_key_base
 end
