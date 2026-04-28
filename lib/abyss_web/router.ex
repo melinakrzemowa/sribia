@@ -17,6 +17,12 @@ defmodule AbyssWeb.Router do
     plug :accepts, ["json"]
   end
 
+  # Prometheus scrape endpoint (no auth — only reachable from the Air's
+  # docker network via host.docker.internal:6900, not via Cloudflare).
+  scope "/" do
+    forward "/metrics", PromEx.Plug, prom_ex_module: Abyss.PromEx
+  end
+
   scope "/", AbyssWeb do
     pipe_through [:browser, :auth]
 
