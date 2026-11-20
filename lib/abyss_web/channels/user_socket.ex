@@ -32,6 +32,11 @@ defmodule AbyssWeb.UserSocket do
     end
   end
 
+  # No token at all (a scanner, a crawler, a client with a broken page): refuse
+  # it the way a bad token is refused. Without this clause the connect crashed
+  # with a FunctionClauseError, answered 500 and logged an error each time.
+  def connect(_params, _socket), do: :error
+
   # Socket id's are topics that allow you to identify all sockets for a given user:
   #
   #     def id(socket), do: "user_socket:#{socket.assigns.user_id}"

@@ -47,7 +47,7 @@ Real-time multiplayer tile-based game built with Elixir/Phoenix and Phaser.js fr
 
 ```bash
 mix setup              # Install deps, create DB, run migrations
-mix test               # Run tests (64 tests, creates sandbox DB)
+mix test               # Run tests (67 tests, creates sandbox DB)
 mix phx.server         # Start dev server at localhost:4040
 iex -S mix phx.server  # Start with interactive shell
 mix ecto.reset         # Drop, create, migrate DB
@@ -73,7 +73,8 @@ mix esbuild default    # Build JS assets
 
 ## Deployment
 
-- Docker multi-stage build (hexpm/elixir:1.19.5-erlang-28.4.2)
+- Docker multi-stage build (hexpm/elixir:1.19.7-erlang-28.5.0.8 on a Debian 12 snapshot; keep OTP on a patched release)
+- `assets/package-lock.json` records the versions of `phoenix` and `phoenix_html` taken from `../deps`: after updating those Hex packages run `npm --prefix assets install --package-lock-only`, or `npm ci` in the Docker build fails
 - GitHub Actions: CI runs tests, Deploy builds arm64 image -> GHCR -> SSH via Cloudflare Tunnel -> docker compose up
 - Production env vars: `DATABASE_URL`, `SECRET_KEY_BASE`, `HOST`, `VERSION`
-- Hosted on Raspberry Pi at sribia.melinakrzemowa.pl
+- Hosted on the Air (home server) at sribia.melinakrzemowa.pl; it ran on the Raspberry Pi before the 2026-08 migration
