@@ -1,4 +1,8 @@
-FROM hexpm/elixir:1.19.5-erlang-28.4.2-debian-bookworm-20260406-slim AS build
+# Keep OTP on a patched release: 28.5.0.6-.8 fixed the inet driver overflow and the
+# TLS client bugs of autumn 2026 (CVE-2026-75538, CVE-2026-89422, CVE-2026-94200).
+# The tag must exist on hexpm/elixir, and the release image below uses the same
+# Debian snapshot.
+FROM hexpm/elixir:1.19.7-erlang-28.5.0.8-debian-bookworm-20261104-slim AS build
 
 # install build dependencies
 RUN apt-get update && \
@@ -40,7 +44,7 @@ COPY lib lib
 RUN mix do compile, release
 
 # prepare release image
-FROM debian:bookworm-20260406-slim AS app
+FROM debian:bookworm-20261104-slim AS app
 
 # install build dependencies
 RUN apt-get update && \
